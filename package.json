@@ -1,0 +1,23 @@
+{
+  "name": "AssetStore",
+  "version": "1.0.0",
+  "description": "AssetStore ==========",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Colum-SMA-Dev/AssetStore.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Colum-SMA-Dev/AssetStore/issues"
+  },
+  "homepage": "https://github.com/Colum-SMA-Dev/AssetStore",
+  "dependencies": {
+    "azure-storage": "^0.4.1",
+    "object-assign": "^2.0.0"
+  }
+}
