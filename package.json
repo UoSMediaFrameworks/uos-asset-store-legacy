@@ -18,6 +18,10 @@
   "homepage": "https://github.com/Colum-SMA-Dev/AssetStore",
   "dependencies": {
     "azure-storage": "^0.4.1",
-    "object-assign": "^2.0.0"
+    "express": "^4.10.4",
+    "mocha": "^2.0.1",
+    "multer": "^0.1.6",
+    "object-assign": "^2.0.0",
+    "supertest": "^0.15.0"
   }
 }
