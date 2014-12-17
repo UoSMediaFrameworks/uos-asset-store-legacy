@@ -11,10 +11,26 @@ var mongo = require('mongojs');
 var routes = require('./routes');
 var session = require('./session');
 
-var AssetStore = function(ops) {
+var AssetStore = function(ops, cb) {
     this._ops = ops;
 
+    // setup mongo connection for sessions
     session.setClient(mongo.connect(ops.mongoConnection, ['sessions']));
+
+    // make azure blob container
+    this._blobSvc = azureStorage.createBlobService(ops.azureStorageAccount, ops.azureStorageAccessKey);
+
+    this._blobSvc.createContainerIfNotExists(this._ops.azureStorageContainer, {publicAccessLevel: 'blob'}, function(error, result, response) {
+        if (cb) {
+            if (error) {
+                cb(error);
+            } else {
+                cb();
+            }
+        } else if (error) {
+            throw error;
+        }
+    }.bind(this));
 };
 
 function requireToken(req, res, next) {
@@ -34,6 +50,8 @@ function requireToken(req, res, next) {
 }
 
 AssetStore.prototype.listen = function(cb) {
+    // init the container
+
     var app = express();
     
     this._server = http.Server(app);
@@ -44,39 +62,17 @@ AssetStore.prototype.listen = function(cb) {
         dest: this._ops.uploadDir
     }));
     
-    app.post('/upload/image', requireToken, routes.imageUpload({
-        storageAccount: this._ops.azureStorageAccount,
-        accessKey: this._ops.azureStorageAccessKey,
-        storageContainer: this._ops.azureStorageContainer
-    }));
+    app.post('/upload/image', requireToken, routes.imageUpload(this._blobSvc, this._ops.azureStorageContainer));
 
     this._server.listen(this._ops.port, cb);
+
+    
 };
 
 AssetStore.prototype.close = function(cb) {
     this._server.close(cb);
 };
 
-module.exports = function(ops) {
-    return new AssetStore(ops);
+module.exports = function(ops, cb) {
+    return new AssetStore(ops, cb);
 };
-
-// var config = {
-//  AZURE_STORAGE_ACCOUNT: process.env.AZURE_STORAGE_ACCOUNT,
-//  AZURE_STORAGE_ACCESS_KEY: process.env.AZURE_STORAGE_ACCESS_KEY
-// };
-
-// try {
-//  var externalConfig = require('./config');
-//  config = objectAssign(config, externalConfig);
-// } catch (e) {
-//  // config.js file is optional, so just proceed grabbing config from process.env
-// }
-
-// var blobSvc = azureStorage.createBlobService(config.AZURE_STORAGE_ACCOUNT, config.AZURE_STORAGE_ACCESS_KEY);
-
-// blobSvc.createContainerIfNotExists('assetstore', {publicAccessLevel: 'blob'}, function(error, result, response) {
-//  if (error) {
-//      throw error;
-//  }
-// });

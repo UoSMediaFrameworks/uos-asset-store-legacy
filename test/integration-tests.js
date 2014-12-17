@@ -18,40 +18,43 @@ describe('AssetStore', function () {
     var sessionId;
 
     before(function (done) {
-        store = assetStore(objectAssign(config, {port: port}));
-        store.listen(function(err, result) {
-            if (err) {
-                done(err);
-            } else {
-                session.create(function(err, record) {
-                    if (err) {
-                        done(err);
-                    } else {
-                        sessionId = record._id.toString();
-                        done();    
-                    }
-                });
-            }
+        store = assetStore(objectAssign(config, {port: port}), function(err) {
+            store.listen(function(err, result) {
+                if (err) {
+                    done(err);
+                } else {
+                    session.create(function(err, record) {
+                        if (err) {
+                            done(err);
+                        } else {
+                            sessionId = record._id.toString();
+                            done();    
+                        }
+                    });
+                }
+            });    
         });
+        
     }); 
 
     after(function (done) {
         store.close(done);
     });
 
-    describe(uploadUrl, function () {
+    describe('POST to ' + uploadUrl, function () {
         beforeEach(function () {
             this.request = request.post(uploadUrl);
         });
 
-        describe('Upload an image without a token', function () {
+
+        describe('without a token', function () {
             it('should respond with a 401', function (done) {
                 this.request.attach('image', xmpFile)
                     .expect(401, done);
             });
-        });
+        });        
 
-        describe('Upload an image without xmp', function () {
+        describe('image without xmp', function () {
             it('should respond with a 400', function (done) {
                 this.request.field('token', sessionId)
                     .attach('image', noXmpFile)
@@ -59,7 +62,7 @@ describe('AssetStore', function () {
             });
         });
 
-        describe('Upload an image with xmp', function () {
+        describe('image with xmp', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
                 this.request.field('token', sessionId)
                     .attach('image', xmpFile)
@@ -74,7 +77,7 @@ describe('AssetStore', function () {
             });
         });
 
-        describe('Make request without an image', function () {
+        describe('no image', function () {
             it('should respond with a 400', function (done) {
                 this.request.send('token=' + sessionId)
                     .end(function(err, res) {

@@ -15,24 +15,31 @@ function _getTags (data, cb) {
     });    
 }
 
+function _blobUrl (blobResult) {
+    return 'https://smassetstore.blob.core.windows.net/' + blobResult.container + '/' + blobResult.blob;
+}
 
 module.exports = {
-    imageUpload: function(azureStorageConfig) {
+    imageUpload: function(storage, containerName) {
         return function(req, res) {
             if (! req.files.image) {
                 res.sendStatus(400);
             } else {
                 fs.readFile(req.files.image.path, function(err, data) {
                     if (err) throw err;
-
                     _getTags(data, function(err, tags) {
                         if (err) {
                             res.status(400).send({error: err});
                         } else {
-                            res.status(200).send({
-                                tags: tags,
-                                url: 'http://aoeus.com'
-                            });    
+                            // put the file in blob storage
+                            storage.createBlockBlobFromLocalFile(containerName, req.files.image.name, req.files.image.path, function(error, result, response) {
+                                if (error) throw error;
+                                
+                                res.status(200).send({
+                                    tags: tags,
+                                    url: _blobUrl(result)
+                                });        
+                            });
                         }
                     });
 
