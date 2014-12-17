@@ -1,6 +1,8 @@
 'use strict';
 
 var assetStore = require('./src/asset-store');
-var store = assetStore({port: process.env.PORT || 4000});
+var config = require('./config');
+
+var store = assetStore(config);
 
 store.listen();
