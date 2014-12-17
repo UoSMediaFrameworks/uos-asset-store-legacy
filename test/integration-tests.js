@@ -27,7 +27,7 @@ describe('AssetStore', function () {
                     if (err) {
                         done(err);
                     } else {
-                        sessionId = record._id;
+                        sessionId = record._id.toString();
                         done();    
                     }
                 });
@@ -50,8 +50,8 @@ describe('AssetStore', function () {
     describe('Upload an image without xmp', function () {
         it('should respond with a 400', function (done) {
             request.post(uploadUrl)
-                .attach('image', noXmpFile)
                 .field('token', sessionId)
+                .attach('image', noXmpFile)
                 .expect(400, done);
         });
     });
