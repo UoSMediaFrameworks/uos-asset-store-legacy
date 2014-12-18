@@ -9,6 +9,7 @@ var session = require('../src/session');
 
 var uploadUrl = '/upload/image';
 var xmpFile = 'test/images/viewChicagoXmp.jpg';
+var xmpNoViewFile = 'test/images/viewChicagoXmpNoImageDetails.jpg';
 var noXmpFile = 'test/images/noXmp.jpg';
 var config = require('../config');
 var objectAssign = require('object-assign');
@@ -62,7 +63,7 @@ describe('AssetStore', function () {
             });
         });
 
-        describe('image with xmp', function () {
+        describe('image with xmp that contains ViewChicago:Image_Details tag', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
                 this.request.field('token', sessionId)
                     .attach('image', xmpFile)
@@ -72,6 +73,20 @@ describe('AssetStore', function () {
                         assert(result.type, 'application/json');
                         assert(body.tags, 'no tags in response');
                         assert(body.url, 'no url in response');
+                        done();
+                    });
+            });
+        });
+
+        describe('image with xmp but missing ViewChicago:Image_Details', function () {
+            it('should respond with a 400 and have an error message', function (done) {
+                this.request.field('token', sessionId)
+                    .attach('image', xmpNoViewFile)
+                    .expect(400)
+                    .end(function(err, result) {
+                        var body = result.body;
+                        assert(result.type, 'application/json');
+                        assert(body.error, 'no erro message in response');
                         done();
                     });
             });

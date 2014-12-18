@@ -8,9 +8,15 @@ function _getTags (data, cb) {
         if (err) {
             cb(err);
         } else {
-            var imageDetails = /ViewChicago\:Image_Details="(.*?)"/g.exec(xmlData)[1];
-
-            cb(null, _.map(imageDetails.split(','), function(t) { return t.trim(); }));
+            var match = /ViewChicago\:Image_Details="(.*?)"/g.exec(xmlData);
+            
+            if (! match) {
+                cb('ViewChicago:Image_Details tag not present in xmp');
+            } else {
+                var imageDetails = match[1];
+                cb(null, _.map(imageDetails.split(','), function(t) { return t.trim(); }));
+            }
+            
         }
     });    
 }
