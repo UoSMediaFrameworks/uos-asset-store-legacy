@@ -16,7 +16,7 @@ function _getTags (data, cb) {
 }
 
 function _blobUrl (blobResult) {
-    return 'https://smassetstore.blob.core.windows.net/' + blobResult.container + '/' + blobResult.blob;
+    return 'https://smaassetstore.blob.core.windows.net/' + blobResult.container + '/' + blobResult.blob;
 }
 
 module.exports = {
@@ -34,7 +34,7 @@ module.exports = {
                             // put the file in blob storage
                             storage.createBlockBlobFromLocalFile(containerName, req.files.image.name, req.files.image.path, function(error, result, response) {
                                 if (error) throw error;
-                                
+
                                 res.status(200).send({
                                     tags: tags,
                                     url: _blobUrl(result)
