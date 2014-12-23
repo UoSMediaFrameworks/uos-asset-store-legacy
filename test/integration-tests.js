@@ -1,41 +1,40 @@
 'use strict';
 
 var assert = require('assert');
-var assetStore = require('../src/asset-store');
+var AssetStore = require('../src/asset-store');
 var supertest = require('supertest');
 var port = 4001;
 var request = supertest('localhost:' + port);
-var session = require('../src/session');
 
-var uploadUrl = '/upload/image';
+var uploadUrl = '/api/images';
 var xmpFile = 'test/images/viewChicagoXmp.jpg';
 var xmpNoViewFile = 'test/images/viewChicagoXmpNoImageDetails.jpg';
 var noXmpFile = 'test/images/noXmp.jpg';
 var config = require('../config');
 var objectAssign = require('object-assign');
+var mongoose = require('mongoose');
+var SessionSchema = require('../src/schemas/session-schema');
+
+var db = mongoose.createConnection(config.mongoConnection); 
+var Session = db.model('Session', SessionSchema);
 
 describe('AssetStore', function () { 
     var store;
-    var sessionId;
+    var session;
 
     before(function (done) {
-        store = assetStore(objectAssign(config, {port: port}), function(err) {
-            store.listen(function(err, result) {
-                if (err) {
-                    done(err);
-                } else {
-                    session.create(function(err, record) {
-                        if (err) {
-                            done(err);
-                        } else {
-                            sessionId = record._id.toString();
-                            done();    
-                        }
-                    });
-                }
-            });    
-        });
-        
+        store = new AssetStore(objectAssign(config, {port: port}));
+        store.listen(function(err, result) {
+            if (err) {
+                done(err);  
+            } else {
+                // make a session to use for tests
+                session = new Session();
+                session.save(function(error) {
+                    done(error); 
+                });    
+            }
+        });            
     }); 
 
     after(function (done) {
@@ -57,7 +56,7 @@ describe('AssetStore', function () {
 
         describe('image without xmp', function () {
             it('should respond with a 400', function (done) {
-                this.request.field('token', sessionId)
+                this.request.field('token', session.id)
                     .attach('image', noXmpFile)
                     .expect(400, done);
             });
@@ -65,7 +64,7 @@ describe('AssetStore', function () {
 
         describe('image with xmp that contains ViewChicago:Image_Details tag', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
-                this.request.field('token', sessionId)
+                this.request.field('token', session.id)
                     .attach('image', xmpFile)
                     .expect(200)
                     .end(function(err, result) {
@@ -80,7 +79,7 @@ describe('AssetStore', function () {
 
         describe('image with xmp but missing ViewChicago:Image_Details', function () {
             it('should respond with a 400 and have an error message', function (done) {
-                this.request.field('token', sessionId)
+                this.request.field('token', session.id)
                     .attach('image', xmpNoViewFile)
                     .expect(400)
                     .end(function(err, result) {
@@ -94,7 +93,7 @@ describe('AssetStore', function () {
 
         describe('no image', function () {
             it('should respond with a 400', function (done) {
-                this.request.send('token=' + sessionId)
+                this.request.send('token=' + session.id)
                     .end(function(err, res) {
                         assert.equal(res.status, 400);
                         done();

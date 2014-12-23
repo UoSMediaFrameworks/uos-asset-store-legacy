@@ -21,12 +21,8 @@ function _getTags (data, cb) {
     });    
 }
 
-function _blobUrl (blobResult) {
-    return 'https://smaassetstore.blob.core.windows.net/' + blobResult.container + '/' + blobResult.blob;
-}
-
 module.exports = {
-    imageUpload: function(storage, containerName) {
+    imageCreate: function(ImageMediaObject) {
         return function(req, res) {
             if (! req.files.image) {
                 res.sendStatus(400);
@@ -37,14 +33,18 @@ module.exports = {
                         if (err) {
                             res.status(400).send({error: err});
                         } else {
-                            // put the file in blob storage
-                            storage.createBlockBlobFromLocalFile(containerName, req.files.image.name, req.files.image.path, function(error, result, response) {
+                            var imob = new ImageMediaObject();
+                            imob.attach('image', {path: req.files.image.path}, function(error, result) {
                                 if (error) throw error;
 
-                                res.status(200).send({
-                                    tags: tags,
-                                    url: _blobUrl(result)
-                                });        
+                                imob.save(function(error) {
+                                    if (error) throw error;
+
+                                    res.status(200).send({
+                                        tags: tags,
+                                        url: imob.image.url
+                                    });            
+                                });
                             });
                         }
                     });

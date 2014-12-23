@@ -1,8 +1,8 @@
 'use strict';
 
-var assetStore = require('./src/asset-store');
+var AssetStore = require('./src/asset-store');
 var config = require('./config');
 
-var store = assetStore(config);
+var store = new AssetStore(config);
 
 store.listen();
