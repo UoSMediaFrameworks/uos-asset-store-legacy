@@ -5,23 +5,6 @@ var _ = require('lodash');
 var xpath = require('xpath');
 var DOMParser = require('xmldom').DOMParser;
 
-function _oldgetTags (data, cb) {
-    xmp.read(data, function(err, xmlData) {
-        if (err) {
-            cb(err);
-        } else {
-            var match = /ViewChicago\:Image_Details="(.*?)"/g.exec(xmlData);
-            
-            if (! match) {
-                cb('ViewChicago:Image_Details tag not present in xmp');
-            } else {
-                var imageDetails = match[1];
-                cb(null, _.map(imageDetails.split(','), function(t) { return t.trim(); }));
-            }
-        }
-    });    
-}
-
 function _getTags (data, cb) {
     xmp.read(data, function(err, xmlData) {
         if (err) {
