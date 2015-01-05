@@ -8,7 +8,7 @@ var request = supertest('localhost:' + port);
 
 var uploadUrl = '/api/images';
 var xmpFile = 'test/images/1836 Map.jpg';
-var xmpNoViewFile = 'test/images/viewChicagoXmpNoImageDetails.jpg';
+var xmpNoViewFile = 'test/images/noDublinCoreKeywords.jpg';
 var noXmpFile = 'test/images/noXmp.jpg';
 var config = require('../config');
 var objectAssign = require('object-assign');
@@ -62,7 +62,7 @@ describe('AssetStore', function () {
             });
         });
 
-        describe('image with xmp that contains ViewChicago:Image_Details tag', function () {
+        describe('image with xmp that contains Dublin Core keywords', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', xmpFile)
@@ -77,7 +77,7 @@ describe('AssetStore', function () {
             });
         });
 
-        describe('image with xmp but missing ViewChicago:Image_Details', function () {
+        describe('image with xmp but missing Dublin Core keywords', function () {
             it('should respond with a 400 and have an error message', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', xmpNoViewFile)
@@ -85,7 +85,7 @@ describe('AssetStore', function () {
                     .end(function(err, result) {
                         var body = result.body;
                         assert(result.type, 'application/json');
-                        assert(body.error, 'no erro message in response');
+                        assert(body.error, 'no error message in response');
                         done();
                     });
             });
