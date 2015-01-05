@@ -1,5 +1,4 @@
-run.sh
+/run.sh
 /node_modules
-#!/azure_node_modules/mongoose-crate/node_modules
-uploads
+/uploads
 .DS_Store
