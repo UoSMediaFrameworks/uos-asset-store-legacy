@@ -109,11 +109,11 @@ fi
 # 2. Select node version
 selectNodeVersion
 
-# 2.5 Copy over azure_node_modules
+# 2.5 Install win32 shrinkwrap file
 
 cd "$DEPLOYMENT_TARGET"
-mkdir -p node_modules
-cp -r azure_node_modules/* node_modules/ 
+
+cp npm-shrinkwrap-win32.json npm-shrinkwrap-win32.json
 
 # 3. Install npm packages
 if [ -e "$DEPLOYMENT_TARGET/package.json" ]; then
