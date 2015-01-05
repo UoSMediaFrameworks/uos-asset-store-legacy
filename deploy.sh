@@ -113,7 +113,7 @@ selectNodeVersion
 
 cd "$DEPLOYMENT_TARGET"
 
-cp npm-shrinkwrap-win32.json npm-shrinkwrap-win32.json
+cp npm-shrinkwrap-win32.json npm-shrinkwrap.json
 
 # 3. Install npm packages
 if [ -e "$DEPLOYMENT_TARGET/package.json" ]; then
