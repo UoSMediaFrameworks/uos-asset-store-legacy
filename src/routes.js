@@ -2,8 +2,10 @@
 var fs = require('fs');
 var xmp = require('./xmp');
 var _ = require('lodash');
+var xpath = require('xpath');
+var DOMParser = require('xmldom').DOMParser;
 
-function _getTags (data, cb) {
+function _oldgetTags (data, cb) {
     xmp.read(data, function(err, xmlData) {
         if (err) {
             cb(err);
@@ -16,10 +18,31 @@ function _getTags (data, cb) {
                 var imageDetails = match[1];
                 cb(null, _.map(imageDetails.split(','), function(t) { return t.trim(); }));
             }
-            
         }
     });    
 }
+
+function _getTags (data, cb) {
+    xmp.read(data, function(err, xmlData) {
+        if (err) {
+            cb(err);
+        } else {
+            var doc = new DOMParser().parseFromString(xmlData);
+            var xpathSelect = xpath.useNamespaces({
+                'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+                'dc': 'http://purl.org/dc/elements/1.1/'
+            });
+            var nodes = xpathSelect('//dc:subject/rdf:Bag/rdf:li/text()', doc);
+
+            if (nodes.length === 0) {
+                cb('Dublin Core keywords tags not found in xmp');
+            } else {
+                cb(null, _.map(nodes, function(v) { return v.data; }));    
+            }
+        }
+    });    
+}
+
 
 module.exports = {
     imageCreate: function(ImageMediaObject) {

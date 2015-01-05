@@ -7,7 +7,7 @@ var port = 4001;
 var request = supertest('localhost:' + port);
 
 var uploadUrl = '/api/images';
-var xmpFile = 'test/images/viewChicagoXmp.jpg';
+var xmpFile = 'test/images/1836 Map.jpg';
 var xmpNoViewFile = 'test/images/viewChicagoXmpNoImageDetails.jpg';
 var noXmpFile = 'test/images/noXmp.jpg';
 var config = require('../config');
