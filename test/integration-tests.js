@@ -7,7 +7,8 @@ var port = 4001;
 var request = supertest('localhost:' + port);
 
 var uploadUrl = '/api/images';
-var xmpFile = 'test/images/1836 Map.jpg';
+var dublinCoreFile = 'test/images/1836 Map.jpg';
+var viewChicagoFile = 'test/images/viewChicagoTagged.jpg';
 var xmpNoViewFile = 'test/images/noDublinCoreKeywords.jpg';
 var noXmpFile = 'test/images/noXmp.jpg';
 var config = require('../config');
@@ -49,7 +50,7 @@ describe('AssetStore', function () {
 
         describe('without a token', function () {
             it('should respond with a 401', function (done) {
-                this.request.attach('image', xmpFile)
+                this.request.attach('image', dublinCoreFile)
                     .expect(401, done);
             });
         });        
@@ -65,7 +66,7 @@ describe('AssetStore', function () {
         describe('image with xmp that contains Dublin Core keywords', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
                 this.request.field('token', session.id)
-                    .attach('image', xmpFile)
+                    .attach('image', dublinCoreFile)
                     .expect(200)
                     .end(function(err, result) {
                         var body = result.body;
@@ -77,7 +78,22 @@ describe('AssetStore', function () {
             });
         });
 
-        describe('image with xmp but missing Dublin Core keywords', function () {
+        describe('image with xmp that contains View Chicago tags', function () {
+            it('should respond with 200, and json object of tags and url', function (done) {
+                this.request.field('token', session.id)
+                    .attach('image', viewChicagoFile)
+                    .expect(200)
+                    .end(function(err, result) {
+                        var body = result.body;
+                        assert(result.type, 'application/json');
+                        assert(body.tags, 'no tags in response');
+                        assert(body.url, 'no url in response');
+                        done();
+                    });
+            });
+        });
+
+        describe('image with xmp but missing Dublin Core keywords and View Chicago tags', function () {
             it('should respond with a 400 and have an error message', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', xmpNoViewFile)
