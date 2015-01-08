@@ -27,10 +27,11 @@ describe('xmp.read(<buffer>)', function () {
         });
     });
 
-    it('should specify an error in callback when no xmp is found', function (done) {
+    it('should return null when no xmp is found', function (done) {
         _readFile(noXmpFile, function(data) {
             xmp.read(data, function(err, xmpData) {  
-                assert(err);
+                assert(! err);
+                assert(! xmpData);
                 done();
             });
         });

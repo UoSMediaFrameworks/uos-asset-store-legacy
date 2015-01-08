@@ -36,8 +36,8 @@ function _getTags (data, cb) {
         if (err) {
             cb(err);
         } else {
-            var result = _extractDublinCoreKeywords(xmlData) || _extractViewChicagoTags(xmlData);
-            cb(result ? null : 'Tags not found in xmp', result);
+            var result = xmlData ? _extractDublinCoreKeywords(xmlData) || _extractViewChicagoTags(xmlData) : null;
+            cb(null, result);
         }
     });    
 }

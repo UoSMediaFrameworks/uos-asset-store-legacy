@@ -20,7 +20,7 @@ function _findXMP(data, cb) {
     var headerIndex = buffertools.indexOf(data, xmpHeader);
     
     if (headerIndex === -1) {
-        cb('no xmp header found in file');
+        cb();
     } else {
         debug('xmp header found at byte ' + headerIndex);
         var trailerIndex = buffertools.indexOf(data, xmpTrailer, xmpHeader.length);
@@ -32,7 +32,7 @@ function _findXMP(data, cb) {
         var closeQuoteCharIndex = buffertools.indexOf(data, new Buffer([quoteChar], 'utf8'), openQuoteCharIndex + 1);
         
         if (closeQuoteCharIndex === -1)  {
-            cb('no close quote char for "begin" attribute');
+            cb('Invalid XMP: no close quote char for "begin" attribute');
         } else {
             var packetEncoding;
             // if there is nothing inbetween then utf8 is assumed

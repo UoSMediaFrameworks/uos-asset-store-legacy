@@ -56,10 +56,17 @@ describe('AssetStore', function () {
         });        
 
         describe('image without xmp', function () {
-            it('should respond with a 400', function (done) {
+            it('should respond with 200 and a url', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', noXmpFile)
-                    .expect(400, done);
+                    .end(function(err, result) {
+                        assert.equal(result.status, 200);
+                        var body = result.body;
+                        assert(result.type, 'application/json');
+                        assert(! body.tags, 'tags in response');
+                        assert(body.url, 'no url in response');
+                        done();
+                    });
             });
         });
 
@@ -67,8 +74,8 @@ describe('AssetStore', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', dublinCoreFile)
-                    .expect(200)
                     .end(function(err, result) {
+                        assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
                         assert(body.tags, 'no tags in response');
@@ -82,8 +89,8 @@ describe('AssetStore', function () {
             it('should respond with 200, and json object of tags and url', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', viewChicagoFile)
-                    .expect(200)
                     .end(function(err, result) {
+                        assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
                         assert(body.tags, 'no tags in response');
@@ -94,14 +101,15 @@ describe('AssetStore', function () {
         });
 
         describe('image with xmp but missing Dublin Core keywords and View Chicago tags', function () {
-            it('should respond with a 400 and have an error message', function (done) {
+            it('should respond with 200 and a url', function (done) {
                 this.request.field('token', session.id)
                     .attach('image', xmpNoViewFile)
-                    .expect(400)
                     .end(function(err, result) {
+                        assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
-                        assert(body.error, 'no error message in response');
+                        assert(body.url, 'no url in response');
+                        assert(! body.tags, 'tags in response');
                         done();
                     });
             });
