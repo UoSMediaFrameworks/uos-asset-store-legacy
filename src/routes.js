@@ -56,7 +56,7 @@ module.exports = {
                             res.status(400).send({error: err});
                         } else {
                             var imob = new ImageMediaObject();
-                            imob.attach('image', {path: req.files.image.path}, function(error, result) {
+                            imob.attach('image', {path: req.files.image.path, name: req.body.filename}, function(error, result) {
                                 if (error) throw error;
 
                                 imob.save(function(error) {

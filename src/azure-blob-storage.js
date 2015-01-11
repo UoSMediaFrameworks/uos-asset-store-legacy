@@ -38,7 +38,8 @@ AzureBlobStorage.prototype.save = function(image, cb) {
 	if (! this._blobSvc) {
 		return this.on('connected', this.save.bind(this, image, cb));
 	} else {
-		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, path.basename(image.path), image.path, function(error, result, response) {
+        var blobPath = path.basename(image.path).split('.')[0] + '/' + image.name;
+		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, blobPath, image.path, function(error, result, response) {
             cb(error, error ? undefined : this._urlFromResult(result));
         }.bind(this));
 	}
