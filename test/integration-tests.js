@@ -6,7 +6,7 @@ var supertest = require('supertest');
 var port = 4001;
 var request = supertest('localhost:' + port);
 
-var uploadUrl = '/api/images';
+var imagesAPIUrl = '/api/images';
 var dublinCoreFile = 'test/images/1836 Map.jpg';
 var viewChicagoFile = 'test/images/viewChicagoTagged.jpg';
 var xmpNoViewFile = 'test/images/noDublinCoreKeywords.jpg';
@@ -42,9 +42,50 @@ describe('AssetStore', function () {
         store.close(done);
     });
 
-    describe('POST to ' + uploadUrl, function () {
+    describe('DELETE to ' + imagesAPIUrl, function () {
+        beforeEach(function(done) {
+            var self = this;
+            request.post(imagesAPIUrl)
+                .field('token', session.id)
+                .attach('image', dublinCoreFile)
+                .end(function (err, result) {
+                    if (err) {
+                        throw err;
+                    }
+                    self.imageUrl = result.body.url;
+                    
+                    request.del(imagesAPIUrl)
+                        .field('token', session.id)
+                        .query({url: self.imageUrl})
+                        .end(function(err, result) {
+                            self.result = result;
+                            done();
+                        });
+                });
+        });
+
+        it('should respond with a 200 when image is deleted', function (done) {
+            assert.equal(this.result.status, 200);
+            done();
+        });
+
+        it('image url should no longer be accessable', function (done) {
+            supertest(this.imageUrl).get().expect(404, done);
+        });
+    });
+
+    describe('DELETE to ' + imagesAPIUrl + ' with nonexistent image', function () {
+        it('should respond with a 404', function (done) {
+            request.del(imagesAPIUrl)
+                .field('token', session.id)
+                .query({url: 'https://smaassetstore.blob.core.windows.net/assetstoreproduction/fakeblobthatdoesntexist.jpg'})
+                .expect(404, done);     
+        });
+    });
+
+    describe('POST to ' + imagesAPIUrl, function () {
         beforeEach(function () {
-            this.request = request.post(uploadUrl);
+            this.request = request.post(imagesAPIUrl);
         });
 
 

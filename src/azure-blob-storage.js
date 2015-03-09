@@ -4,6 +4,7 @@ var azureStorage = require('azure-storage');
 var check = require('check-types');
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
+var url = require('url');
 var path = require('path');
 
 var AzureBlobStorage = function(options) {
@@ -34,6 +35,14 @@ AzureBlobStorage.prototype._urlFromResult = function(result) {
 };
 
 
+function waitForBlobSvc (func) {
+	return function() {
+		if (! this._blobSvc) {
+			//return this.on('connected', this.func.bind(this, image, cb));	
+		}
+	}
+}
+
 AzureBlobStorage.prototype.save = function(image, cb) {
 	if (! this._blobSvc) {
 		return this.on('connected', this.save.bind(this, image, cb));
@@ -46,7 +55,15 @@ AzureBlobStorage.prototype.save = function(image, cb) {
 };
 
 AzureBlobStorage.prototype.remove = function(image, cb) {
-	throw 'not implemented';
+		if (! this._blobSvc) {
+			return this.on('connected', this.remove.bind(this, image, cb));
+		} else {
+			// get the blob name from the url
+			var blobName = url.parse(image.url).path.match(/\/\w+\/(.*)/)[1];
+			this._blobSvc.deleteBlob(this._options.container, blobName, function(error, response) {
+	            cb(error);
+	        });
+		}
 };
 
 module.exports = AzureBlobStorage;

@@ -74,5 +74,28 @@ module.exports = {
                 });
             }
         };
+    },
+    imageDelete: function (ImageMediaObject) {
+        return function(req, res) {
+            ImageMediaObject.findOne({'image.url': req.query.url}, 'image', function(err, imob) {
+                if (! imob) {
+                    res.status(404).send({error: 'No image found with that url.'});
+                } else {
+                    imob.remove(function(err) {
+                       if (err) {
+                            if (err.statusCode) {
+                                res.status(err.statusCode).send({error: err.toString()});
+                            } else {
+                                res.status(500).send({error: err.toString()});     
+                            }
+                           
+                       } else {
+                           res.sendStatus(200);
+                       } 
+                    });    
+                }
+                
+            });
+        };
     }
 };

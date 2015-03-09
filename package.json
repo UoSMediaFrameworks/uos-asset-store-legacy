@@ -28,7 +28,6 @@
     "mongojs": "^0.18.0",
     "mongoose": "^3.8.21",
     "mongoose-crate": "^1.0.7",
-    "mongoose-crate-localfs": "^1.1.1",
     "multer": "^0.1.6",
     "object-assign": "^2.0.0",
     "q": "^1.1.2",

@@ -37,6 +37,8 @@ var AssetStore = function(ops) {
     
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
+    router.delete('/images', routes.imageDelete(ImageMediaObject));
+
     function requireToken(req, res, next) {
         if ( req.body.token ) {
             Session.findOne({'_id': req.body.token}, function(err, sess) {

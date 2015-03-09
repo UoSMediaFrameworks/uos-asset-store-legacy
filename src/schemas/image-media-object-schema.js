@@ -1,6 +1,5 @@
 var mongoose = require('mongoose');
 var crate = require('mongoose-crate');
-var LocalFS = require('mongoose-crate-localfs');
 var AzureBlobStorage = require('../azure-blob-storage');
 var config = require('../../config');
 
