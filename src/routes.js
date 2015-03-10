@@ -4,6 +4,7 @@ var xmp = require('./xmp');
 var _ = require('lodash');
 var xpath = require('xpath');
 var DOMParser = require('xmldom').DOMParser;
+var async = require('async');
 
 function _getDublinCoreTags (data, cb) {
     xmp.read(data, function(err, xmlData) {
@@ -75,26 +76,27 @@ module.exports = {
             }
         };
     },
-    imageDelete: function (ImageMediaObject) {
+
+    removeUnusedImages: function(ImageMediaObject, MediaScene) {
         return function(req, res) {
-            ImageMediaObject.findOne({'image.url': req.query.url}, 'image', function(err, imob) {
-                if (! imob) {
-                    res.status(404).send({error: 'No image found with that url.'});
-                } else {
-                    imob.remove(function(err) {
-                       if (err) {
-                            if (err.statusCode) {
-                                res.status(err.statusCode).send({error: err.toString()});
-                            } else {
-                                res.status(500).send({error: err.toString()});     
-                            }
-                           
-                       } else {
-                           res.sendStatus(200);
-                       } 
-                    });    
-                }
-                
+            // first get all of the image urls in the scenes
+            MediaScene.find({'scene.type': 'image'}, 'scene.url', function(err, docs) {
+                // get all image urls in all docs, unique the list
+                // pretty big hack here, this should really be done at the db level,
+                // but that can be fixed down the road
+                var imgUrls = _(_.map(docs, function(x) {return x.toObject();})).pluck('scene').flatten().pluck('url').uniq().valueOf();
+                ImageMediaObject.find().where('image.url').nin(imgUrls).exec(function(err, imgDocs) {
+                    // we have to call delete on each one to trigger the deletion of the record in the blob
+                    async.mapLimit(imgDocs, 4, function(imob, callback) {
+                        imob.remove(callback);
+                    }, function(err) {
+                        if (err) {
+                            res.sendStatus(500).send({error: err.toString()});
+                        } else {
+                            res.sendStatus(200);
+                        }
+                    });
+                });
             });
         };
     }

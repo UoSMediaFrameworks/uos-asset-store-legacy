@@ -8,6 +8,7 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var ImageMediaObjectSchema = require('./schemas/image-media-object-schema');
 var SessionSchema = require('./schemas/session-schema');
+var MediaSceneSchema = require('./schemas/media-scene-schema');
 var routes = require('./routes');
 
 var AssetStore = function(ops) {
@@ -22,6 +23,7 @@ var AssetStore = function(ops) {
     var db = mongoose.createConnection(ops.mongoConnection); 
     var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
     var Session = db.model('Session', SessionSchema);
+    var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
 
     app.use(function(req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
@@ -37,7 +39,7 @@ var AssetStore = function(ops) {
     
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
-    router.delete('/images', routes.imageDelete(ImageMediaObject));
+    router.post('/remove-unused-images', routes.removeUnusedImages(ImageMediaObject, MediaScene));
 
     function requireToken(req, res, next) {
         if ( req.body.token ) {

@@ -34,15 +34,6 @@ AzureBlobStorage.prototype._urlFromResult = function(result) {
 	return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
 };
 
-
-function waitForBlobSvc (func) {
-	return function() {
-		if (! this._blobSvc) {
-			//return this.on('connected', this.func.bind(this, image, cb));	
-		}
-	}
-}
-
 AzureBlobStorage.prototype.save = function(image, cb) {
 	if (! this._blobSvc) {
 		return this.on('connected', this.save.bind(this, image, cb));

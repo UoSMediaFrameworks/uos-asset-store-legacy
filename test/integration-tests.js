@@ -5,8 +5,11 @@ var AssetStore = require('../src/asset-store');
 var supertest = require('supertest');
 var port = 4001;
 var request = supertest('localhost:' + port);
+var azureStorage = require('azure-storage');
+var async = require('async');
 
 var imagesAPIUrl = '/api/images';
+var removeUnusedImagesAPIUrl = '/api/remove-unused-images';
 var dublinCoreFile = 'test/images/1836 Map.jpg';
 var viewChicagoFile = 'test/images/viewChicagoTagged.jpg';
 var xmpNoViewFile = 'test/images/noDublinCoreKeywords.jpg';
@@ -15,9 +18,63 @@ var config = require('../config');
 var objectAssign = require('object-assign');
 var mongoose = require('mongoose');
 var SessionSchema = require('../src/schemas/session-schema');
+var ImageMediaObjectSchema = require('../src/schemas/image-media-object-schema');
+var MediaSceneSchema = require('../src/schemas/media-scene-schema');
 
 var db = mongoose.createConnection(config.mongoConnection); 
 var Session = db.model('Session', SessionSchema);
+var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
+var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
+
+function clearBlobStorage (cbsCallback) {
+    // clear up the storage blob
+    var blobSvc = azureStorage.createBlobService(config.azureStorageAccount, config.azureStorageAccessKey);
+    blobSvc.createContainerIfNotExists(config.azureStorageContainer, {publicAccessLevel: 'blob'}, function(error, result, response) {
+        if (error) {
+            cbsCallback(error);
+        } 
+        // get all blobs
+        blobSvc.listBlobsSegmented(config.azureStorageContainer, null, function(err, result, response) {
+            // delete them 4 at a time
+            async.mapLimit(result.entries, 4, function(blob, mlCallback) {
+                blobSvc.deleteBlob(config.azureStorageContainer, blob.name, function(err, response) {
+                    mlCallback(err, response);
+                });
+            }, cbsCallback);
+        });
+    });
+}
+
+function clearMongo (callback) {
+    ImageMediaObject.remove({}, function() {
+        MediaScene.remove({}, callback);
+    });
+}
+
+function clearData (callback) {
+    async.parallel([
+        clearMongo, clearBlobStorage
+    ], callback);
+}
+
+function uploadImage (imgPath, sessionId) {
+    return function (callback) {
+        request.post(imagesAPIUrl)
+            .field('token', sessionId)
+            .attach('image', imgPath)
+            .end(function(err, result) {
+                callback(err, result.body.url);
+            });
+    };
+}
+
+function createScene(scene) {
+    return function (callback) {
+        MediaScene.create({
+            scene: scene
+        }, callback);
+    };
+}
 
 describe('AssetStore', function () { 
     var store;
@@ -39,47 +96,61 @@ describe('AssetStore', function () {
     }); 
 
     after(function (done) {
-        store.close(done);
+        async.parallel(
+            [
+                clearData,
+                store.close.bind(store)
+            ], 
+            done
+        );
     });
 
-    describe('DELETE to ' + imagesAPIUrl, function () {
-        beforeEach(function(done) {
+    describe('POST to ' + removeUnusedImagesAPIUrl, function () {
+        beforeEach(function (done) {
             var self = this;
-            request.post(imagesAPIUrl)
-                .field('token', session.id)
-                .attach('image', dublinCoreFile)
-                .end(function (err, result) {
-                    if (err) {
-                        throw err;
-                    }
-                    self.imageUrl = result.body.url;
-                    
-                    request.del(imagesAPIUrl)
+
+            async.parallel([
+                uploadImage(dublinCoreFile, session.id),
+                uploadImage(dublinCoreFile, session.id),
+            ], function(err, results) {
+                if (err) done(err);
+                
+                self.unusedImageUrl = results[0];
+                self.usedImageUrl = results[1];
+                
+                async.parallel([
+                    createScene([
+                        {type: 'image', url: self.usedImageUrl},
+                        {type: 'image', url: 'http://somenonbloburl.com/img.jpg'}
+                    ]),
+                    createScene([
+                        {type: 'image', url: 'http://somenonbloburl.com/img.jpg'}
+                    ])
+                ], function(err, results) {
+                    request.post(removeUnusedImagesAPIUrl)
                         .field('token', session.id)
-                        .query({url: self.imageUrl})
-                        .end(function(err, result) {
-                            self.result = result;
-                            done();
-                        });
-                });
+                        .expect(200)
+                        .end(done);    
+                }); 
+            });
         });
 
-        it('should respond with a 200 when image is deleted', function (done) {
-            assert.equal(this.result.status, 200);
-            done();
+        afterEach(function (done) {
+            clearData(done);
         });
 
-        it('image url should no longer be accessable', function (done) {
-            supertest(this.imageUrl).get().expect(404, done);
+        it('should remove all images from blob store that aren\'t in a scene', function (done) {
+            ImageMediaObject.find({'image.url': this.unusedImageUrl}, null, function(err, docs) {
+                assert.equal(docs.length, 0);
+                done();
+            });
         });
-    });
 
-    describe('DELETE to ' + imagesAPIUrl + ' with nonexistent image', function () {
-        it('should respond with a 404', function (done) {
-            request.del(imagesAPIUrl)
-                .field('token', session.id)
-                .query({url: 'https://smaassetstore.blob.core.windows.net/assetstoreproduction/fakeblobthatdoesntexist.jpg'})
-                .expect(404, done);     
+        it('should not remove images that are in a scene', function (done) {
+           ImageMediaObject.find({'image.url': this.usedImageUrl}, null, function(err, docs) {
+               assert.equal(docs.length, 1);
+               done();
+           }); 
         });
     });
 
