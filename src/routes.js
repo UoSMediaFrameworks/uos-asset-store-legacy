@@ -91,7 +91,7 @@ module.exports = {
                         imob.remove(callback);
                     }, function(err) {
                         if (err) {
-                            res.sendStatus(500).send({error: err.toString()});
+                            res.status(500).send(err.toString());
                         } else {
                             res.sendStatus(200);
                         }

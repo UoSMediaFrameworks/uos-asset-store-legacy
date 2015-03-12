@@ -51,8 +51,10 @@ AzureBlobStorage.prototype.remove = function(image, cb) {
 		} else {
 			// get the blob name from the url
 			var blobName = url.parse(image.url).path.match(/\/\w+\/(.*)/)[1];
+			console.log('deleting blob ' + blobName);
 			this._blobSvc.deleteBlob(this._options.container, blobName, function(error, response) {
-	            cb(error);
+				// muffle any 404s, not a big deal if we are trying to remove something and it isn't there!
+	            cb(response.statusCode === 404 ? null : error);
 	        });
 		}
 };
