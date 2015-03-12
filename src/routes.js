@@ -85,7 +85,14 @@ module.exports = {
                 // pretty big hack here, this should really be done at the db level,
                 // but that can be fixed down the road
                 var undefinedOrNull = function(v) { return v  === undefined || v === null };
-                var imgUrls = _(_.map(docs, function(x) {return x.toObject();})).pluck('scene').flatten().pluck('url').reject(undefinedOrNull).uniq().valueOf();
+                var imgUrls = _(_.map(docs, function(x) {return x.toObject();}))
+                                .pluck('scene')
+                                .flatten()
+                                .reject(undefinedOrNull)
+                                .pluck('url')
+                                .uniq()
+                                .valueOf();
+
                 ImageMediaObject.find().where('image.url').nin(imgUrls).exec(function(err, imgDocs) {
                     // we have to call delete on each one to trigger the deletion of the record in the blob
                     async.mapLimit(imgDocs, 4, function(imob, callback) {
