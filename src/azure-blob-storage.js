@@ -10,15 +10,18 @@ var path = require('path');
 var AzureBlobStorage = function(options) {
 	EventEmitter.call(this);
 
-	['account', 'accessKey', 'container'].forEach(function(key) {
-		check.assert.string(options[key], key + ' is required.');
-	});
+	//['account', 'accessKey', 'container'].forEach(function(key) {
+	//	check.assert.string(options[key], key + ' is required.');
+	//});
 
 	this._options = options;
 
 	// try to make azure blob container
-	var blobSvc = azureStorage.createBlobService(options.account, options.accessKey);
-    blobSvc.createContainerIfNotExists(options.container, {publicAccessLevel: 'blob'}, function(error, result, response) {
+var blobSvc = azureStorage.createBlobService('devstoreaccount1', 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==', 'http://127.0.0.1:10000');
+
+	blobSvc.logger = new azureStorage.Logger(azureStorage.Logger.LogLevels.DEBUG);
+    
+	blobSvc.createContainerIfNotExists('assetstoredev', {publicAccessLevel: 'blob'}, function(error, result, response) {
         if (error) {
             throw error;
         } else {
@@ -31,7 +34,8 @@ var AzureBlobStorage = function(options) {
 util.inherits(AzureBlobStorage, EventEmitter);
 
 AzureBlobStorage.prototype._urlFromResult = function(result) {
-	return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
+	//return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
+	return util.format('http://127.0.0.1:10000/%s/%s/%s', this._options.account, result.container, result.blob);
 };
 
 AzureBlobStorage.prototype.save = function(image, cb) {
