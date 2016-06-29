@@ -5,6 +5,8 @@ var _ = require('lodash');
 var xpath = require('xpath');
 var DOMParser = require('xmldom').DOMParser;
 var async = require('async');
+var sharp = require('sharp');
+var ImageProcessing = require('./image-processing');
 
 function _getDublinCoreTags (data, cb) {
     xmp.read(data, function(err, xmlData) {
@@ -52,23 +54,38 @@ module.exports = {
             } else {
                 fs.readFile(req.files.image.path, function(err, data) {
                     if (err) throw err;
+
+                    var fileImagePath = req.files.image.path;
+                    var fileImageName = req.body.filename;
+                    var imageToUpload = sharp(fileImagePath);
+
                     _getTags(data, function(err, tags) {
                         if (err) {
                             res.status(400).send({error: err});
                         } else {
-                            var imob = new ImageMediaObject();
-                            imob.attach('image', {path: req.files.image.path, name: req.body.filename}, function(error, result) {
-                                if (error) throw error;
+                            //Indiscriminately upload a thumbnail for each image uploaded
+                            var imageProcessor = ImageProcessing();
+                            imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function() {
 
-                                imob.save(function(error) {
+                                var imob = new ImageMediaObject();
+                                imob.attach('image', {path: fileImagePath, name: fileImageName}, function(error, result) {
                                     if (error) throw error;
 
-                                    res.status(200).send({
-                                        tags: tags,
-                                        url: imob.image.url
-                                    });            
+                                    imob.save(function(error) {
+                                        if (error) throw error;
+
+                                        console.log("Succesfully saved new ImageMediaObject to asset store and mongo storage");
+
+                                        res.status(200).send({
+                                            tags: tags,
+                                            url: imob.image.url
+                                        });
+                                    });
                                 });
+
                             });
+
+
                         }
                     });
 
@@ -93,6 +110,11 @@ module.exports = {
                                 .uniq()
                                 .valueOf();
 
+                //Bit of a niggly hack but map the imgUrls within the scene into arrays providing their thumbnail counterpart
+                imgUrls = _(_.map(imgUrls, function(x) { return [x, x+"-thumbnail.jpg"]}))
+                    .flatten()
+                    .valueOf();
+                        
                 ImageMediaObject.find().where('image.url').nin(imgUrls).exec(function(err, imgDocs) {
                     // we have to call delete on each one to trigger the deletion of the record in the blob
                     async.mapLimit(imgDocs, 4, function(imob, callback) {

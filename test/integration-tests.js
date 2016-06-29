@@ -10,6 +10,7 @@ var async = require('async');
 
 var imagesAPIUrl = '/api/images';
 var removeUnusedImagesAPIUrl = '/api/remove-unused-images';
+var dublinCoreFileName = '1836 Map.jpg';
 var dublinCoreFile = 'test/images/1836 Map.jpg';
 var viewChicagoFile = 'test/images/viewChicagoTagged.jpg';
 var xmpNoViewFile = 'test/images/noDublinCoreKeywords.jpg';
@@ -68,6 +69,18 @@ function uploadImage (imgPath, sessionId) {
     };
 }
 
+function uploadImage (imgPath, imgName, sessionId) {
+    return function (callback) {
+        request.post(imagesAPIUrl)
+            .field('token', sessionId)
+            .field('filename', imgName)
+            .attach('image', imgPath)
+            .end(function(err, result) {
+                callback(err, result.body.url);
+            });
+    };
+}
+
 function createScene(scene) {
     return function (callback) {
         MediaScene.create({
@@ -105,18 +118,25 @@ describe('AssetStore', function () {
         );
     });
 
+    //before each test for posting to the api end point to remove unused images
+        //We create two upload two of the same images
+        //Create two scenes
     describe('POST to ' + removeUnusedImagesAPIUrl, function () {
         beforeEach(function (done) {
+
+
             var self = this;
 
             async.parallel([
-                uploadImage(dublinCoreFile, session.id),
-                uploadImage(dublinCoreFile, session.id),
+                uploadImage(dublinCoreFile, dublinCoreFileName, session.id),
+                uploadImage(dublinCoreFile, dublinCoreFileName, session.id),
             ], function(err, results) {
                 if (err) done(err);
                 
                 self.unusedImageUrl = results[0];
+                self.unusedImageUrlThumbnail = results[0] + "-thumbnail.jpg";
                 self.usedImageUrl = results[1];
+                self.usedImageUrlThumbnail = results[1] + "-thumbnail.jpg";
                 
                 async.parallel([
                     createScene([
@@ -139,18 +159,27 @@ describe('AssetStore', function () {
             clearData(done);
         });
 
-        it('should remove all images from blob store that aren\'t in a scene', function (done) {
-            ImageMediaObject.find({'image.url': this.unusedImageUrl}, null, function(err, docs) {
+        it('should remove all images and thumbnails from blob store that aren\'t in a scene', function (done) {
+            var self = this;
+            ImageMediaObject.find({'image.url': self.unusedImageUrl}, null, function(err, docs) {
                 assert.equal(docs.length, 0);
-                done();
+                ImageMediaObject.find({'image.url': self.unusedImageUrlThumbnail}, null, function(err, docs) {
+                    assert.equal(docs.length, 0);
+                    done();
+                });
             });
         });
 
-        it('should not remove images that are in a scene', function (done) {
-           ImageMediaObject.find({'image.url': this.usedImageUrl}, null, function(err, docs) {
-               assert.equal(docs.length, 1);
-               done();
-           }); 
+        it('should not remove images and their thumbnail counterpart that are in a scene', function (done) {
+            var self = this;
+           ImageMediaObject.find({'image.url': self.usedImageUrl}, null, function(err, docs) {
+               assert.equal(docs.length, 1, "Ensure the used image url exists");
+
+               ImageMediaObject.find({'image.url': self.usedImageUrlThumbnail}, null, function(err, docs) {
+                   assert.equal(docs.length, 1, "Ensure the used thumbnail image url exists");
+                   done();
+               });
+           });
         });
     });
 
