@@ -23,8 +23,8 @@ module.exports = function() {
 
         uploadThumbnailImage: function(ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
             var self = this;
-            var thumbnailImageFilePath = imageFilePath + "-thumbnail.jpg";
-            var thumbnailImageFileName = imageFileName + "-thumbnail.jpg";
+            var thumbnailImageFilePath = imageFilePath + "-thumbnail";
+            var thumbnailImageFileName = "thumbnail-" + imageFileName;
             imageToUpload
                 .resize(undefined, thumbnailHeight)
                 .toFile(thumbnailImageFilePath, function(err) {
@@ -47,16 +47,12 @@ module.exports = function() {
         },
 
         saveImage: function(ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
-
-            console.log("SaveImage: [ imageFilePath: " + imageFilePath + "," +
-                "imageFileName: " + imageFileName + "]");
-
             var self = this;
 
             this.getImageMetadata(imageToUpload, function(metaData){
                 if(metaData.height > maxImageHeight) {
 
-                    var resizedImageFilePath = imageFilePath + "-resized.jpg";
+                    var resizedImageFilePath = imageFilePath + "-resized";
                     
                     imageToUpload
                         .resize(undefined, maxImageHeight)

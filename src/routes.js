@@ -45,6 +45,15 @@ function _getTags (data, cb) {
     });    
 }
 
+function getImageMediaObjectThumbnailUrl(mediaObjectUrl) {
+    if(!mediaObjectUrl || mediaObjectUrl.length == 0) {
+        return mediaObjectUrl;
+    }
+
+    var trailingSlash = mediaObjectUrl.lastIndexOf('/');
+
+    return mediaObjectUrl.substring(0, trailingSlash + 1) + "thumbnail-" + mediaObjectUrl.substring(trailingSlash + 1, mediaObjectUrl.length);
+}
 
 module.exports = {
     imageCreate: function(ImageMediaObject) {
@@ -67,11 +76,11 @@ module.exports = {
 
                     var imageProcessor = ImageProcessing();
                     // Indiscriminately upload a thumbnail for each image uploaded
-                    imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function() {
+                    imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(thumbnailImob) {
                     
                         imageProcessor.saveImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(imob) {
                             
-                            console.log("Successfully saved new ImageMediaObject to asset store and mongo storage");
+                            console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
                     
                             res.status(200).send({
                                 tags: tags,
@@ -102,7 +111,7 @@ module.exports = {
                                 .valueOf();
 
                 //Bit of a niggly hack but map the imgUrls within the scene into arrays providing their thumbnail counterpart
-                imgUrls = _(_.map(imgUrls, function(x) { return [x, x+"-thumbnail.jpg"]}))
+                imgUrls = _(_.map(imgUrls, function(x) { return [x, getImageMediaObjectThumbnailUrl(x) ]}))
                     .flatten()
                     .valueOf();
                         

@@ -89,6 +89,15 @@ function createScene(scene) {
     };
 }
 
+function getImageMediaObjectThumbnailUrl(mediaObjectUrl) {
+    if(!mediaObjectUrl || mediaObjectUrl.length == 0) {
+        return mediaObjectUrl;
+    }
+
+    var trailingSlash = mediaObjectUrl.lastIndexOf('/');
+    return mediaObjectUrl.substring(0, trailingSlash + 1) + "thumbnail-" + mediaObjectUrl.substring(trailingSlash + 1, mediaObjectUrl.length);
+}
+
 describe('AssetStore', function () { 
     var store;
     var session;
@@ -121,9 +130,9 @@ describe('AssetStore', function () {
     //before each test for posting to the api end point to remove unused images
         //We create two upload two of the same images
         //Create two scenes
-    describe('POST to ' + removeUnusedImagesAPIUrl, function () {
+    describe.only('POST to ' + removeUnusedImagesAPIUrl, function () {
         beforeEach(function (done) {
-
+            this.timeout(20000); //Increases timeout giving image upload more time
 
             var self = this;
 
@@ -132,11 +141,11 @@ describe('AssetStore', function () {
                 uploadImage(dublinCoreFile, dublinCoreFileName, session.id),
             ], function(err, results) {
                 if (err) done(err);
-                
+
                 self.unusedImageUrl = results[0];
-                self.unusedImageUrlThumbnail = results[0] + "-thumbnail.jpg";
+                self.unusedImageUrlThumbnail = getImageMediaObjectThumbnailUrl(results[0]);
                 self.usedImageUrl = results[1];
-                self.usedImageUrlThumbnail = results[1] + "-thumbnail.jpg";
+                self.usedImageUrlThumbnail = getImageMediaObjectThumbnailUrl(results[1]);
                 
                 async.parallel([
                     createScene([
@@ -160,6 +169,7 @@ describe('AssetStore', function () {
         });
 
         it('should remove all images and thumbnails from blob store that aren\'t in a scene', function (done) {
+            this.timeout(20000);
             var self = this;
             ImageMediaObject.find({'image.url': self.unusedImageUrl}, null, function(err, docs) {
                 assert.equal(docs.length, 0);
@@ -171,6 +181,7 @@ describe('AssetStore', function () {
         });
 
         it('should not remove images and their thumbnail counterpart that are in a scene', function (done) {
+            this.timeout(20000);
             var self = this;
            ImageMediaObject.find({'image.url': self.usedImageUrl}, null, function(err, docs) {
                assert.equal(docs.length, 1, "Ensure the used image url exists");
