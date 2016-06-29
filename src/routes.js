@@ -50,47 +50,38 @@ module.exports = {
     imageCreate: function(ImageMediaObject) {
         return function(req, res) {
             if (! req.files.image) {
-                res.sendStatus(400);
-            } else {
-                fs.readFile(req.files.image.path, function(err, data) {
-                    if (err) throw err;
+                return res.sendStatus(400);
+            } 
+            
+            fs.readFile(req.files.image.path, function(err, data) {
+                if (err) throw err;
 
-                    var fileImagePath = req.files.image.path;
-                    var fileImageName = req.body.filename;
-                    var imageToUpload = sharp(fileImagePath);
+                var fileImagePath = req.files.image.path;
+                var fileImageName = req.body.filename;
+                var imageToUpload = sharp(fileImagePath);
 
-                    _getTags(data, function(err, tags) {
-                        if (err) {
-                            res.status(400).send({error: err});
-                        } else {
-                            //Indiscriminately upload a thumbnail for each image uploaded
-                            var imageProcessor = ImageProcessing();
-                            imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function() {
+                _getTags(data, function(err, tags) {
+                    if (err) {
+                        return res.status(400).send({error: err});
+                    }
 
-                                var imob = new ImageMediaObject();
-                                imob.attach('image', {path: fileImagePath, name: fileImageName}, function(error, result) {
-                                    if (error) throw error;
-
-                                    imob.save(function(error) {
-                                        if (error) throw error;
-
-                                        console.log("Succesfully saved new ImageMediaObject to asset store and mongo storage");
-
-                                        res.status(200).send({
-                                            tags: tags,
-                                            url: imob.image.url
-                                        });
-                                    });
-                                });
-
+                    var imageProcessor = ImageProcessing();
+                    // Indiscriminately upload a thumbnail for each image uploaded
+                    imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function() {
+                    
+                        imageProcessor.saveImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(imob) {
+                            
+                            console.log("Successfully saved new ImageMediaObject to asset store and mongo storage");
+                    
+                            res.status(200).send({
+                                tags: tags,
+                                url: imob.image.url
                             });
-
-
-                        }
+                        });
                     });
-
                 });
-            }
+
+            });
         };
     },
 
