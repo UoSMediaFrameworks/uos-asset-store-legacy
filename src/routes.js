@@ -78,7 +78,7 @@ module.exports = {
                     // Indiscriminately upload a thumbnail for each image uploaded
                     imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(thumbnailImob) {
                     
-                        imageProcessor.saveImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(imob) {
+                        imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(imob) {
                             
                             console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
                     

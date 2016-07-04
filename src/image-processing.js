@@ -46,7 +46,7 @@ module.exports = function() {
                 });
         },
 
-        saveImage: function(ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
+        uploadImage: function(ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
             var self = this;
 
             this.getImageMetadata(imageToUpload, function(metaData){
