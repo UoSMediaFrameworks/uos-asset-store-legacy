@@ -1,6 +1,7 @@
 'use strict';
 
 var sharp = require('sharp');
+var async = require('async');
 
 const thumbnailHeight = 90;
 const maxImageHeight = 768;
@@ -16,7 +17,7 @@ module.exports = function() {
                 imob.save(function(error) {
                     if (error) throw error;
 
-                    callback(imob);
+                    callback(null, imob);
                 });
             });
         },
@@ -48,24 +49,22 @@ module.exports = function() {
 
         uploadImage: function(ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
             var self = this;
-
-            this.getImageMetadata(imageToUpload, function(metaData){
-                if(metaData.height > maxImageHeight) {
-
-                    var resizedImageFilePath = imageFilePath + "-resized";
-                    
-                    imageToUpload
-                        .resize(undefined, maxImageHeight)
-                        .toFile(resizedImageFilePath , function(err){
-
-                            if(err) throw err;
-
-                            self.storeImage(ImageMediaObject, resizedImageFilePath, imageFileName, callback)
-
-                        });
-                } else {
-                    self.storeImage(ImageMediaObject, imageFilePath, imageFileName, callback)
+            async.parallel([
+               function(callback) {
+                   var resizedImageFilePath = imageFilePath + "-resized";
+                   var resizedImageFileName = "resized-" + imageFileName;
+                   imageToUpload
+                       .resize(undefined, maxImageHeight)
+                       .toFile(resizedImageFilePath , function(err){
+                           if(err) throw err;
+                           self.storeImage(ImageMediaObject, resizedImageFilePath, resizedImageFileName, callback);
+                       });
+               }, function(callback) {
+                    self.storeImage(ImageMediaObject, imageFilePath, imageFileName, callback);
                 }
+            ], function(err, results){
+                if(err) throw err;
+                callback(results[1]);
             });
         }
     }
