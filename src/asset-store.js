@@ -22,7 +22,7 @@ var AssetStore = function(ops) {
     
     var db = mongoose.createConnection(ops.mongoConnection); 
     var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
-    var Session = db.model('Session', SessionSchema);
+    var Session = db.model('sessions', SessionSchema);
     var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
 
     app.use(function(req, res, next) {
