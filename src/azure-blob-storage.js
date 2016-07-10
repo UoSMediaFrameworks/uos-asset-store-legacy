@@ -17,50 +17,46 @@ var AzureBlobStorage = function(options) {
 	this._options = options;
 
 	// try to make azure blob container
-var blobSvc = azureStorage.createBlobService('devstoreaccount1', 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==', 'http://127.0.0.1:10000');
-
-	blobSvc.logger = new azureStorage.Logger(azureStorage.Logger.LogLevels.DEBUG);
-    
-	blobSvc.createContainerIfNotExists('assetstoredev', {publicAccessLevel: 'blob'}, function(error, result, response) {
-        if (error) {
-            throw error;
-        } else {
-        	this._blobSvc = blobSvc;
-	        this.emit('connected');	
-        }
-    }.bind(this));
+	var blobSvc = azureStorage.createBlobService(options.account, options.accessKey);
+	blobSvc.createContainerIfNotExists(options.container, {publicAccessLevel: 'blob'}, function(error, result, response) {
+		if (error) {
+			throw error;
+		} else {
+			this._blobSvc = blobSvc;
+			this.emit('connected');
+		}
+	}.bind(this));
 };
 
 util.inherits(AzureBlobStorage, EventEmitter);
 
 AzureBlobStorage.prototype._urlFromResult = function(result) {
-	//return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
-	return util.format('http://127.0.0.1:10000/%s/%s/%s', this._options.account, result.container, result.blob);
+	return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
 };
 
 AzureBlobStorage.prototype.save = function(image, cb) {
 	if (! this._blobSvc) {
 		return this.on('connected', this.save.bind(this, image, cb));
 	} else {
-        var blobPath = path.basename(image.path).split('.')[0] + '/' + image.name;
+		var blobPath = path.basename(image.path).split('.')[0] + '/' + image.name;
 		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, blobPath, image.path, function(error, result, response) {
-            cb(error, error ? undefined : this._urlFromResult(result));
-        }.bind(this));
+			cb(error, error ? undefined : this._urlFromResult(result));
+		}.bind(this));
 	}
 };
 
 AzureBlobStorage.prototype.remove = function(image, cb) {
-		if (! this._blobSvc) {
-			return this.on('connected', this.remove.bind(this, image, cb));
-		} else {
-			// get the blob name from the url
-			var blobName = url.parse(image.url).path.match(/\/\w+\/(.*)/)[1];
-			console.log('deleting blob ' + blobName);
-			this._blobSvc.deleteBlob(this._options.container, blobName, function(error, response) {
-				// muffle any 404s, not a big deal if we are trying to remove something and it isn't there!
-	            cb(response.statusCode === 404 ? null : error);
-	        });
-		}
+	if (! this._blobSvc) {
+		return this.on('connected', this.remove.bind(this, image, cb));
+	} else {
+		// get the blob name from the url
+		var blobName = url.parse(image.url).path.match(/\/\w+\/(.*)/)[1];
+		console.log('deleting blob ' + blobName);
+		this._blobSvc.deleteBlob(this._options.container, blobName, function(error, response) {
+			// muffle any 404s, not a big deal if we are trying to remove something and it isn't there!
+			cb(response.statusCode === 404 ? null : error);
+		});
+	}
 };
 
 module.exports = AzureBlobStorage;
