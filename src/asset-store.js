@@ -43,6 +43,9 @@ var AssetStore = function(ops) {
 
     function requireToken(req, res, next) {
         if ( req.body.token ) {
+
+            console.log("Looking for session with _id: " + req.body.token);
+
             Session.findOne({'_id': req.body.token}, function(err, sess) {
                 if (err) throw err;
 
