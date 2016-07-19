@@ -44,7 +44,7 @@ var AssetStore = function(ops) {
     function requireToken(req, res, next) {
 
         console.log("Looking for session in body: " + req.body);
-        
+
         if ( req.body.token ) {
 
             console.log("Looking for session with _id: " + req.body.token);
