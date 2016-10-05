@@ -10,9 +10,9 @@ var ImageSchema = new mongoose.Schema({
 
 ImageSchema.plugin(crate, {
 	storage: new AzureBlobStorage({
-		account: config.azureStorageAccount,
-		accessKey: config.azureStorageAccessKey,
-		container: config.azureStorageContainer
+		account: config.account,
+		accessKey: config.accessKey,
+		container: config.container
 	}),
 	fields: {
 		image: {}
