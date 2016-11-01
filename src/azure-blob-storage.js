@@ -38,8 +38,14 @@ AzureBlobStorage.prototype.save = function(media, cb) {
 	if (! this._blobSvc) {
 		return this.on('connected', this.save.bind(this, media, cb));
 	} else {
-		var mediaIdForFolder = media.id.toString();
-		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaIdForFolder, media.path, function(error, result, response) {
+
+		var mediaForStoragePath;
+		if(media.type.startsWith("video")) {
+			mediaForStoragePath = "video/raw/" + media.id + "/" + media.name;
+		} else {
+			mediaForStoragePath = media.id + "/" + media.name;
+		}
+		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
 			cb(error, error ? undefined : this._urlFromResult(result));
 		}.bind(this));
 	}
