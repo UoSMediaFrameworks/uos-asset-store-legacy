@@ -70,6 +70,8 @@ var AssetStore = function(ops) {
     }
 
     app.use('/api', requireToken, router);    
+    
+    app.use('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject))
 };
 
 AssetStore.prototype.listen = function(cb) {
