@@ -100,6 +100,45 @@ module.exports = {
         }  
     },
     
+    updateMediaForTranscoding: function(VideoMediaObject) {
+        return function(req,res) {
+            
+            try {
+                var transcodedMediaData = req.body.transcodedMedia;
+            } catch(e) {
+                return res.status(400).send('Error parsing JSON');
+            }
+
+            var totalTranscodedMedia = 0;
+            if(transcodedMediaData.length === 0) {
+                return res.status(200).send({
+                    updatedMediaCount: totalTranscodedMedia
+                });
+            }
+
+            _.forEach(transcodedMediaData, function(transcodedMedia) {
+
+                var conditions = { _id: transcodedMedia._id }
+                    , update = { hasTranscoded: true}
+                    , options = { multi: false };
+
+                VideoMediaObject.update(conditions, update, options, function(err, numAffected){
+                    if(err)
+                        return res.statusCode(400);
+
+                    totalTranscodedMedia += numAffected.nModified;
+
+                    if(transcodedMedia._id === transcodedMediaData[transcodedMediaData.length - 1]._id) {
+                        return res.status(200).send({
+                            updatedMediaCount: totalTranscodedMedia
+                        });
+                    }
+                });
+            });
+
+        }
+    },
+    
     //TODO remove unused videos
     
     imageCreate: function(ImageMediaObject) {

@@ -19,7 +19,6 @@ var AssetStore = function(ops) {
         router = express.Router();
     
     this._server = http.Server(app);
-
     
     var db = mongoose.createConnection(ops.mongoConnection); 
     var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
@@ -34,6 +33,9 @@ var AssetStore = function(ops) {
     });
 
     app.use(bodyParser.urlencoded({ extended: false }));
+
+    // parse application/json
+    app.use(bodyParser.json());
 
     app.use(multer({
         dest: this._ops.uploadDir
@@ -71,7 +73,8 @@ var AssetStore = function(ops) {
 
     app.use('/api', requireToken, router);    
     
-    app.use('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject))
+    app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject));
+    app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject));
 };
 
 AssetStore.prototype.listen = function(cb) {
