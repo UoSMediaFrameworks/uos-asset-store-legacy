@@ -34,12 +34,11 @@ AzureBlobStorage.prototype._urlFromResult = function(result) {
 	return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
 };
 
-AzureBlobStorage.prototype.save = function(image, cb) {
+AzureBlobStorage.prototype.save = function(media, cb) {
 	if (! this._blobSvc) {
-		return this.on('connected', this.save.bind(this, image, cb));
+		return this.on('connected', this.save.bind(this, media, cb));
 	} else {
-		var blobPath = path.basename(image.path).split('.')[0] + '/' + image.name;
-		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, blobPath, image.path, function(error, result, response) {
+		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, media.id, media.path, function(error, result, response) {
 			cb(error, error ? undefined : this._urlFromResult(result));
 		}.bind(this));
 	}

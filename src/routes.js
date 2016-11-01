@@ -7,6 +7,7 @@ var DOMParser = require('xmldom').DOMParser;
 var async = require('async');
 var sharp = require('sharp');
 var ImageProcessing = require('./image-processing');
+var VideoProcessing = require('./video-processing');
 
 function _getDublinCoreTags (data, cb) {
     xmp.read(data, function(err, xmlData) {
@@ -56,6 +57,34 @@ function getImageMediaObjectThumbnailUrl(mediaObjectUrl) {
 }
 
 module.exports = {
+    
+    videoCreate: function(VideoMediaObject) {
+        return function(req,res) {
+            if (!req.files.video) {
+                return res.sendStatus(400);
+            }
+            
+            fs.readFile(req.files.video.path, function(err,data) {
+                if (err) throw err;
+
+                var fileVideoPath = req.files.video.path;
+                var fileVideoName = req.body.filename;
+                
+                var videoProcessor = VideoProcessing();
+                videoProcessor.uploadVideo(VideoMediaObject, fileVideoPath, fileVideoName, function(error, vmod){
+                    console.log("Successfully attempted a video upload vmod: ", vmod);
+                    res.status(200).send({
+                        tags: "",
+                        url: vmod.video.url
+                    });
+                });
+                
+            });
+        }
+    },
+    
+    //TODO remove unused videos
+    
     imageCreate: function(ImageMediaObject) {
         return function(req, res) {
             if (! req.files.image) {

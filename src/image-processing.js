@@ -11,7 +11,7 @@ module.exports = function() {
 
         storeImage: function(ImageMediaObject, imageFilePath, imageFileName, callback) {
             var imob = new ImageMediaObject();
-            imob.attach('image', {path: imageFilePath, name: imageFileName }, function(error, result) {
+            imob.attach('image', { id: imob._id, path: imageFilePath, name: imageFileName }, function(error, result) {
                 if (error) throw error;
 
                 imob.save(function(error) {

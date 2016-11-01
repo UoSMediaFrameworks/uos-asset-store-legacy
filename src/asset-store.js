@@ -7,6 +7,7 @@ var multer = require('multer');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var ImageMediaObjectSchema = require('./schemas/image-media-object-schema');
+var VideoMediaObjectSchema = require('./schemas/video-media-object-schema');
 var SessionSchema = require('./schemas/session-schema');
 var MediaSceneSchema = require('./schemas/media-scene-schema');
 var routes = require('./routes');
@@ -22,6 +23,7 @@ var AssetStore = function(ops) {
     
     var db = mongoose.createConnection(ops.mongoConnection); 
     var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
+    var VideoMediaObject = db.model('VideoMediaObject', VideoMediaObjectSchema);
     var Session = db.model('sessions', SessionSchema);
     var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
 
@@ -36,6 +38,10 @@ var AssetStore = function(ops) {
     app.use(multer({
         dest: this._ops.uploadDir
     }));
+    
+    router.post('/videos', routes.videoCreate(VideoMediaObject));
+    
+    //TODO remove unusued videos
     
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
