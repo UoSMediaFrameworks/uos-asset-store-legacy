@@ -102,11 +102,13 @@ module.exports = {
     
     updateMediaForTranscoding: function(VideoMediaObject) {
         return function(req,res) {
-            
-            try {
-                var transcodedMediaData = req.body.transcodedMedia;
-            } catch(e) {
-                return res.status(400).send('Error parsing JSON');
+
+            console.log("updateMediaForTranscoding: ", req.body);
+
+            var transcodedMediaData = req.body.transcodedMedia;
+
+            if(!transcodedMediaData) {
+                return res.status(400).send('No transcoded media data found');
             }
 
             var totalTranscodedMedia = 0;
