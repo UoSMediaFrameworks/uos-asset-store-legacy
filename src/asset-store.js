@@ -12,6 +12,8 @@ var SessionSchema = require('./schemas/session-schema');
 var MediaSceneSchema = require('./schemas/media-scene-schema');
 var routes = require('./routes');
 
+
+
 var AssetStore = function(ops) {
     this._ops = ops;
 
@@ -32,10 +34,8 @@ var AssetStore = function(ops) {
         next();
     });
 
-    app.use(bodyParser.urlencoded({ extended: false }));
-
-    // parse application/json
-    app.use(bodyParser.json());
+    app.use(bodyParser.json({limit: '100mb'}));
+    app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
 
     app.use(multer({
         dest: this._ops.uploadDir
@@ -75,6 +75,8 @@ var AssetStore = function(ops) {
     
     app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject));
     app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject));
+
+    app.post('/vimeo/media-for-transcoding', routes.videoCreateFromVimeoDownloader(VideoMediaObject, MediaScene));
 };
 
 AssetStore.prototype.listen = function(cb) {

@@ -8,9 +8,11 @@ var config = require('../../config');
 
 var VideoSchema = new mongoose.Schema({
     path: String,
-    hasTranscoded: { type: Boolean, default: false}
-    
-    //TODO add into schema with defaults for other video properties we want to deal with
+    hasTranscoded: { type: Boolean, default: false},
+
+    transcoder: Number, //simple odd or even for basic parallelisation of transcoding
+    vimeoId: String,
+    description: String
 });
 
 VideoSchema.plugin(crate, {
