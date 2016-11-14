@@ -1,4 +1,11 @@
 'use strict';
+var util = require('util');
+
+
+
+function getUrl(videoUrl) {
+    return util.format('https://%s.blob.core.windows.net/%s/%s', "uosassetstore", "assetstoredev", videoUrl);
+}
 
 module.exports = function() {
     return {
@@ -21,9 +28,8 @@ module.exports = function() {
 
         },
 
-        storeVimeoVideo: function(VideoMediaObject, videoFilePath, videoFileName, videoName, vimeoId, transcoder, description, callback) {
+        storeVimeoVideo: function(VideoMediaObject, videoFileName, videoName, vimeoId, transcoder, description, size, callback) {
             console.log("Video Processing - storeVimeoVideo[" +
-                "videoFilePath: " + videoFilePath + ", " +
                 "videoFileName: " + videoFileName + ", " +
                 "vimeoId: " + vimeoId + ", " +
                 "transcoder: " + transcoder + ", " +
@@ -35,17 +41,15 @@ module.exports = function() {
             vmod.transcoder = transcoder;
             vmod.description = description;
 
+            vmod.video.name = videoFileName;
+            vmod.video.type = "video/mp4";
+            vmod.video.size = size;
+            vmod.video.url = getUrl("video/raw/" + vmod.id + "/" + vmod.video.name);
 
-            vmod.attach('video', { id: vmod._id, path: videoFilePath, name: videoFileName }, function(error, result) {
-
+            vmod.save(function(error) {
                 if (error) throw error;
 
-                vmod.save(function(error) {
-                    if (error) throw error;
-
-                    callback(null, vmod);
-                });
-
+                callback(null, vmod);
             });
             
         },

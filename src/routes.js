@@ -75,45 +75,35 @@ module.exports = {
 
             console.log("Begin: videoCreateFromVimeoDownloader");
 
-            if (!req.files.video) {
-                console.log("NO video - stop: ", req.files);
-                console.log("NO video is files.video - req.body: ", req.body);
-                return res.sendStatus(400);
-            }
 
-            fs.readFile(req.files.video.path, function(err,data) {
-                if (err) throw err;
+            var fileVideoName = req.body.filename;
+            var videoDescription = req.body.description;
+            var videoName = req.body.name;
+            var vimeoId = req.body.vimeoId;
+            var size = req.body.size;
+            var transcoder = getTranscoderValue();
 
-                var fileVideoPath = req.files.video.path;
-                var fileVideoName = req.body.filename;
-                
-                var videoDescription = req.body.description;
-                var videoName = req.body.name;
-                var vimeoId = req.body.vimeoId;
-                var transcoder = getTranscoderValue();
+            var videoProcessor = VideoProcessing();
+            
+            videoProcessor.storeVimeoVideo(VideoMediaObject, fileVideoName, videoName, vimeoId, transcoder, videoDescription, size, function(err, vmod) {
+                console.log("Successfully attempted a video upload from vimeo download: ", vmod);
 
-                var videoProcessor = VideoProcessing();
-                
-                videoProcessor.storeVimeoVideo(VideoMediaObject, fileVideoPath, fileVideoName, videoName, vimeoId, transcoder, videoDescription, function(err, vmod) {
-                    console.log("Successfully attempted a video upload from vimeo download: ", vmod);
+                var query = { 'scene.url': 'https://vimeo.com/' + vimeoId };
+                var update = { $set: { 'scene.$.url': vmod.video.url }};
+                var options = { new: false, multi: true };
 
-                    var query = { 'scene.url': 'https://vimeo.com/' + vimeoId };
-                    var update = { $set: { 'scene.$.url': vmod.video.url }};
-                    var options = { new: false, multi: true };
+                //search for scenes that have the vimeo url
+                MediaScene.update(query, update, options, function(err,data){
+                    if(err)
+                        throw err;
 
-                    //search for scenes that have the vimeo url
-                    MediaScene.update(query, update, options, function(err,data){
-                        if(err)
-                            throw err;
+                    console.log("Updated all scene references to use the non vimeo url");
 
-                        console.log("Updated all scene references to use the non vimeo url");
-
-                        res.status(200).send(data);
-                    });
-                
+                    res.status(200).send(vmod);
                 });
-                
+            
             });
+                
         }  
     },
     
