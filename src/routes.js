@@ -56,13 +56,13 @@ function getImageMediaObjectThumbnailUrl(mediaObjectUrl) {
     return mediaObjectUrl.substring(0, trailingSlash + 1) + "thumbnail-" + mediaObjectUrl.substring(trailingSlash + 1, mediaObjectUrl.length);
 }
 
-var transcoder = 1;
+var transcoder = 3;
 
 function getTranscoderValue() {
-    if(transcoder === 1) {
-        transcoder = 2;
+    if(transcoder === 3) {
+        transcoder = 4;
     } else {
-        transcoder = 1;
+        transcoder = 3;
     }  
     
     return transcoder;
