@@ -136,16 +136,28 @@ module.exports = {
     retrieveMediaForTranscoding: function(VideoMediaObject) {
         return function(req,res) {
             VideoMediaObject.find({hasTranscoded: false}, function(err, data) {
-                if(err) {
-                    return res.sendStatus(400);
-                }
+                if(err) return res.sendStatus(400);
 
                 var mediaForTranscoding = {
                     mediaForTranscoding: data
                 };
 
                 res.status(200).send(mediaForTranscoding);
+            });
+        }  
+    },
+    
+    retrieveMediaForTranscodingForVimeoBatchUploading: function(VideoMediaObject) {
+        return function(req,res) {
+            //APEP: less than 176294233 is 320 videos - this is being used as a temporary api to reduce the set being used by the first transcoding process of vimeo videos
+            VideoMediaObject.find({hasTranscoded: false, vimeoId: { $lt: '176294233'}}, function(err, data){
+                if(err) return res.sendStatus(400);
 
+                var mediaForTranscoding = {
+                    mediaForTranscoding: data
+                };
+
+                res.status(200).send(mediaForTranscoding);
             });
         }  
     },
