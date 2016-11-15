@@ -44,7 +44,7 @@ module.exports = function() {
             vmod.video.name = videoFileName;
             vmod.video.type = "video/mp4";
             vmod.video.size = size;
-            vmod.video.url = getUrl("video/raw/" + vmod.id + "/" + vmod.video.name);
+            vmod.video.url = getUrl("video/raw/" + vmod.id + "/" + encodeURIComponent(vmod.video.name));
 
             vmod.save(function(error) {
                 if (error) throw error;
