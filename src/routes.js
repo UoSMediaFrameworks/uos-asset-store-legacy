@@ -151,7 +151,7 @@ module.exports = {
         return function(req,res) {
             //APEP: We updated any VMOB that was not in a scene to be ignored true, this takes all not ignored and limits
             //APEP: vimeoId lte is used to split the media in half during this manual batch process
-            var q = VideoMediaObject.find({hasTranscoded: false, ignore: false, vimeoId: { $lte: 176432886 } });
+            var q = VideoMediaObject.find({hasTranscoded: false, ignore: false });
 
             q.exec(function(err, data){
                 if(err) return res.sendStatus(400);
