@@ -45,11 +45,9 @@ AzureBlobStorage.prototype.save = function(media, cb) {
 		} else {
 			mediaForStoragePath = media.id + "/" + media.name;
 		}
-		// this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
-		// 	cb(error, error ? undefined : this._urlFromResult(result));
-		// }.bind(this));
-
-		cb(undefined, this._urlFromResult({container: this._options.container, blob: "video/raw/" + media.id + "/" + media.name}));
+		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
+			cb(error, error ? undefined : this._urlFromResult(result));
+		}.bind(this));
 	}
 };
 
