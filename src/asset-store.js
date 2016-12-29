@@ -47,6 +47,21 @@ var AssetStore = function(ops) {
     
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
+    //APEP Place holder for final transcation to save media to the DB
+    router.post('/resumable/upload/media', function(req, res){
+        console.log("resumable-images - req.body: ", req.body);
+
+        res.sendStatus(200);
+    });
+
+    //APEP Place holder for each chunk upload
+    router.post('/resumable/final', function(req, res){
+        res.status(200).send({
+            tags: "",
+            url: "http://example.com"
+        });
+    });
+    
     router.post('/remove-unused-images', routes.removeUnusedImages(ImageMediaObject, MediaScene));
 
     function requireToken(req, res, next) {
