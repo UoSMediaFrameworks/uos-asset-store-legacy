@@ -16,6 +16,9 @@ var async = require('async');
 const osTmpdir = require('os-tmpdir');
 var resumableMediaUploadTempDir = osTmpdir() + "/";
 
+const IMAGE_RESUMABLE_MEDIA_TYPE = "image";
+const VIDEO_RESUMABLE_MEDIA_TYPE = "video";
+
 var AssetStore = function(ops) {
     this._ops = ops;
 
@@ -49,16 +52,18 @@ var AssetStore = function(ops) {
     
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
-    //APEP Place holder for final transcation to save media to the DB
     router.post('/resumable/upload/media', function(req, res){
 
         var resumableFilename = req.body.resumableFilename;
         var resumableChunkNumber = req.body.resumableChunkNumber;
         var resumableIdentifier = req.body.resumableIdentifier;
+        // APEP create the resumableFilePath for the chunk, each chunk is stored in os.tmp directory with;
+        // chunk number - asset upload id (ie a front end generated token for the asset to be uploaded) - file name including extension
         var resumableFilePath = resumableMediaUploadTempDir + resumableChunkNumber + "-" + resumableIdentifier + resumableFilename;
 
         var tmpFilePath = req.files.file.path;
 
+        // APEP read the file from the HTTP request and write to file system
         fs.readFile(tmpFilePath, function (err, data) {
 
             if(err) {
@@ -78,15 +83,14 @@ var AssetStore = function(ops) {
         });
     });
 
-    //APEP Place holder for each chunk upload
     router.post('/resumable/final', function(req, res) {
-
-        var taskObject = {};
 
         var numberOfChunks = req.body.numberOfChunks;
         var relativePath = req.body.relativePath;
         var resumableIdentifier = req.body.uniqueIdentifier;
+        var mediaType = req.body.mediaType;
         
+        // APEP async function to write chunk to a single stream, the write stream is reused for each chunk 
         function readChunkAndWriteToFile(chunkFilePath, writeStream, isEnd, callback) {
             var r = fs.createReadStream(chunkFilePath);
 
@@ -99,25 +103,38 @@ var AssetStore = function(ops) {
             });
         }
 
-        var w = fs.createWriteStream(resumableMediaUploadTempDir + relativePath);
+        var finalMediaObjectFilePath = resumableMediaUploadTempDir + resumableIdentifier + relativePath;
+        var w = fs.createWriteStream(finalMediaObjectFilePath);
 
-        for(var i = 1; i < numberOfChunks; i++) {
+        var taskObject = {};
+
+        // APEP for each chunk, create async task object populated with a function to read and write streams per chunk, 
+        // this is going to be executed in series with support for async read and writing of streams
+        for(var i = 1; i <= numberOfChunks; i++) {
             var fileName = resumableMediaUploadTempDir + i + "-" + resumableIdentifier + relativePath;
-
             taskObject[i] = readChunkAndWriteToFile.bind(null, fileName, w, i == numberOfChunks);
         }
 
+        // APEP run the task object through async series, if the result is successful we know we've written the chunks
+        // back to a single file and now can be written to DB and Azure blob storage
         async.series(taskObject, function(err, results){
             if(err) {
                 return res.statusCode(400);
             }
             
-            var finalVideoMediaObjectFilePath = resumableMediaUploadTempDir + relativePath;
-
-            //APEP TODO switch based off media type
-            routes.resumableVideoCreate(VideoMediaObject, finalVideoMediaObjectFilePath, relativePath, function(vmob){
-                res.status(200).send(vmob);
-            });
+            // APEP Detect media type and storage acccordingly
+            if(mediaType === IMAGE_RESUMABLE_MEDIA_TYPE) {
+                routes.resumableImageCreate(ImageMediaObject, finalMediaObjectFilePath, relativePath, function(vmob){
+                    res.status(200).send(vmob);
+                });
+            } else if (mediaType === VIDEO_RESUMABLE_MEDIA_TYPE) {
+                routes.resumableVideoCreate(VideoMediaObject, finalMediaObjectFilePath, relativePath, function(vmob){
+                    res.status(200).send(vmob);
+                });
+            } else {
+                res.statusCode(400);
+            }
+            
         });
     });
     

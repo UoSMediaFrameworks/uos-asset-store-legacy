@@ -227,6 +227,34 @@ module.exports = {
     },
     
     //TODO remove unused videos
+
+    resumableImageCreate: function(ImageMediaObject, resumableCompletedFilePath, resumableCompletedFileName, callback) {
+        fs.readFile(resumableCompletedFilePath, function(err, data) {
+            if (err) throw err;
+
+            var fileImagePath = resumableCompletedFilePath;
+            var fileImageName = resumableCompletedFileName;
+            var imageToUpload = sharp(fileImagePath);
+
+            _getTags(data, function(err, tags) {
+                if (err) {
+                    return res.status(400).send({error: err});
+                }
+
+                var imageProcessor = ImageProcessing();
+                // Indiscriminately upload a thumbnail for each image uploaded
+                imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(err, thumbnailImob) {
+                    imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function(imob) {
+                        console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
+                        callback({
+                            tags: tags,
+                            url: imob.image.url
+                        });
+                    });
+                });
+            });
+        });
+    },
     
     imageCreate: function(ImageMediaObject) {
         return function(req, res) {
