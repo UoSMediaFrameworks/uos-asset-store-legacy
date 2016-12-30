@@ -54,7 +54,8 @@ var AssetStore = function(ops) {
 
         var resumableFilename = req.body.resumableFilename;
         var resumableChunkNumber = req.body.resumableChunkNumber;
-        var resumableFilePath = resumableMediaUploadTempDir + resumableChunkNumber + "-" + resumableFilename;
+        var resumableIdentifier = req.body.resumableIdentifier;
+        var resumableFilePath = resumableMediaUploadTempDir + resumableChunkNumber + "-" + resumableIdentifier + resumableFilename;
 
         var tmpFilePath = req.files.file.path;
 
@@ -83,8 +84,9 @@ var AssetStore = function(ops) {
         var taskObject = {};
 
         var numberOfChunks = req.body.numberOfChunks;
-        var relativePath = req.body.relativePath; //req.body
-
+        var relativePath = req.body.relativePath;
+        var resumableIdentifier = req.body.uniqueIdentifier;
+        
         function readChunkAndWriteToFile(chunkFilePath, writeStream, isEnd, callback) {
             var r = fs.createReadStream(chunkFilePath);
 
@@ -100,7 +102,7 @@ var AssetStore = function(ops) {
         var w = fs.createWriteStream(resumableMediaUploadTempDir + relativePath);
 
         for(var i = 1; i < numberOfChunks; i++) {
-            var fileName = resumableMediaUploadTempDir + i +"-" + relativePath;
+            var fileName = resumableMediaUploadTempDir + i + "-" + resumableIdentifier + relativePath;
 
             taskObject[i] = readChunkAndWriteToFile.bind(null, fileName, w, i == numberOfChunks);
         }
@@ -122,8 +124,6 @@ var AssetStore = function(ops) {
     router.post('/remove-unused-images', routes.removeUnusedImages(ImageMediaObject, MediaScene));
 
     function requireToken(req, res, next) {
-
-        console.log("Looking for session in body: " + JSON.stringify(req.body));
 
         if (req.method === "OPTIONS") {
             return next();
