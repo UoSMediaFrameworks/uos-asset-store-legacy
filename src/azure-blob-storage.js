@@ -31,7 +31,12 @@ var AzureBlobStorage = function(options) {
 util.inherits(AzureBlobStorage, EventEmitter);
 
 AzureBlobStorage.prototype._urlFromResult = function(result) {
-	return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.blob);
+    //APEP chunk upload results from blob storage do not work with this method
+	return util.format('https://%s.blob.core.windows.net/%s/%s', this._options.account, result.container, result.name);
+};
+
+AzureBlobStorage.prototype._urlPartial = function(mediaForStoragePath) {
+	return util.format('https://%s.blob.core.windows.net/%s/', this._options.account, this._options.container) + mediaForStoragePath;
 };
 
 AzureBlobStorage.prototype.save = function(media, cb) {
@@ -46,7 +51,7 @@ AzureBlobStorage.prototype.save = function(media, cb) {
 			mediaForStoragePath = media.id + "/" + media.name;
 		}
 		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
-			cb(error, error ? undefined : this._urlFromResult(result));
+			cb(error, error ? undefined : this._urlPartial(mediaForStoragePath));
 		}.bind(this));
 	}
 };

@@ -85,6 +85,8 @@ var AssetStore = function(ops) {
 
     router.post('/resumable/final', function(req, res) {
 
+        console.log("/resumable/final request made : " + JSON.stringify(req.body));
+
         var numberOfChunks = req.body.numberOfChunks;
         var relativePath = req.body.relativePath;
         var resumableIdentifier = req.body.uniqueIdentifier;
