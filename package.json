@@ -31,6 +31,7 @@
     "mongoose-crate": "^1.0.7",
     "multer": "^0.1.6",
     "object-assign": "^2.1.1",
+    "os-tmpdir": "^1.0.2",
     "q": "^1.1.2",
     "sharp": "^0.15.0",
     "supertest": "^0.15.0",

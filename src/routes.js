@@ -107,6 +107,24 @@ module.exports = {
                 
         }  
     },
+
+    resumableVideoCreate: function(VideoMediaObject, resumableCompletedFilePath, resumableCompletedFileName, callback) {
+        fs.readFile(resumableCompletedFilePath, function(err, data) {
+            if (err) throw err;
+
+            var fileVideoPath = resumableCompletedFilePath;
+            var fileVideoName = resumableCompletedFileName;
+
+            var videoProcessor = VideoProcessing();
+            videoProcessor.uploadVideo(VideoMediaObject, fileVideoPath, fileVideoName, function(error, vmod){
+                console.log("Successfully attempted a video upload vmod: ", vmod);
+                callback({
+                    tags: "",
+                    url: vmod.video.url
+                });
+            });
+        });
+    },
     
     videoCreate: function(VideoMediaObject) {
         return function(req,res) {

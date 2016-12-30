@@ -11,8 +11,10 @@ var VideoMediaObjectSchema = require('./schemas/video-media-object-schema');
 var SessionSchema = require('./schemas/session-schema');
 var MediaSceneSchema = require('./schemas/media-scene-schema');
 var routes = require('./routes');
-
-
+var fs = require('fs');
+var async = require('async');
+const osTmpdir = require('os-tmpdir');
+var resumableMediaUploadTempDir = osTmpdir() + "/";
 
 var AssetStore = function(ops) {
     this._ops = ops;
@@ -49,16 +51,71 @@ var AssetStore = function(ops) {
 
     //APEP Place holder for final transcation to save media to the DB
     router.post('/resumable/upload/media', function(req, res){
-        console.log("resumable-images - req.body: ", req.body);
 
-        res.sendStatus(200);
+        var resumableFilename = req.body.resumableFilename;
+        var resumableChunkNumber = req.body.resumableChunkNumber;
+        var resumableFilePath = resumableMediaUploadTempDir + resumableChunkNumber + "-" + resumableFilename;
+
+        var tmpFilePath = req.files.file.path;
+
+        fs.readFile(tmpFilePath, function (err, data) {
+
+            if(err) {
+                console.log("/resumable/upload/media - read chunk file from http post err");
+                return res.sendStatus(400);
+            }
+
+            fs.writeFile(resumableFilePath, data, function(err) {
+                if (err) {
+                    console.log("/resumable/upload/media - write chunk file err");
+                    res.sendStatus(400);
+                } else {
+                    console.log("/resumable/upload/media - write chunk file success");
+                    res.sendStatus(200);
+                }
+            });
+        });
     });
 
     //APEP Place holder for each chunk upload
-    router.post('/resumable/final', function(req, res){
-        res.status(200).send({
-            tags: "",
-            url: "http://example.com"
+    router.post('/resumable/final', function(req, res) {
+
+        var taskObject = {};
+
+        var numberOfChunks = req.body.numberOfChunks;
+        var relativePath = req.body.relativePath; //req.body
+
+        function readChunkAndWriteToFile(chunkFilePath, writeStream, isEnd, callback) {
+            var r = fs.createReadStream(chunkFilePath);
+
+            r.pipe(writeStream, {
+                end: isEnd
+            });
+
+            r.on('end', function() {
+                callback(null, true)
+            });
+        }
+
+        var w = fs.createWriteStream(resumableMediaUploadTempDir + relativePath);
+
+        for(var i = 1; i < numberOfChunks; i++) {
+            var fileName = resumableMediaUploadTempDir + i +"-" + relativePath;
+
+            taskObject[i] = readChunkAndWriteToFile.bind(null, fileName, w, i == numberOfChunks);
+        }
+
+        async.series(taskObject, function(err, results){
+            if(err) {
+                return res.statusCode(400);
+            }
+            
+            var finalVideoMediaObjectFilePath = resumableMediaUploadTempDir + relativePath;
+
+            //APEP TODO switch based off media type
+            routes.resumableVideoCreate(VideoMediaObject, finalVideoMediaObjectFilePath, relativePath, function(vmob){
+                res.status(200).send(vmob);
+            });
         });
     });
     
@@ -66,7 +123,11 @@ var AssetStore = function(ops) {
 
     function requireToken(req, res, next) {
 
-        console.log("Looking for session in body: " + req.body);
+        console.log("Looking for session in body: " + JSON.stringify(req.body));
+
+        if (req.method === "OPTIONS") {
+            return next();
+        }
 
         if ( req.body.token ) {
 
