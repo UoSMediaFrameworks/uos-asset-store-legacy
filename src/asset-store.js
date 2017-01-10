@@ -19,40 +19,40 @@ var resumableMediaUploadTempDir = osTmpdir() + "/";
 const IMAGE_RESUMABLE_MEDIA_TYPE = "image";
 const VIDEO_RESUMABLE_MEDIA_TYPE = "video";
 
-var AssetStore = function(ops) {
+var AssetStore = function (ops) {
     this._ops = ops;
 
     var app = express(),
         router = express.Router();
-    
+
     this._server = http.Server(app);
-    
-    var db = mongoose.createConnection(ops.mongoConnection); 
+
+    var db = mongoose.createConnection(ops.mongoConnection);
+
     var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
     var VideoMediaObject = db.model('VideoMediaObject', VideoMediaObjectSchema);
     var Session = db.model('sessions', SessionSchema);
     var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
-
-    app.use(function(req, res, next) {
+    app.use(function (req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         next();
     });
-
+    
     app.use(bodyParser.json({limit: '1024mb'}));
     app.use(bodyParser.urlencoded({limit: '1024mb', extended: true}));
 
     app.use(multer({
         dest: this._ops.uploadDir
     }));
-    
+
     router.post('/videos', routes.videoCreate(VideoMediaObject));
-    
+    router.post('/isTranscoded', routes.retrieveVideoMediaStranscodedStatus(VideoMediaObject));
     //TODO remove unusued videos
-    
+
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
-    router.post('/resumable/upload/media', function(req, res){
+    router.post('/resumable/upload/media', function (req, res) {
 
         var resumableFilename = req.body.resumableFilename;
         var resumableChunkNumber = req.body.resumableChunkNumber;
@@ -66,12 +66,12 @@ var AssetStore = function(ops) {
         // APEP read the file from the HTTP request and write to file system
         fs.readFile(tmpFilePath, function (err, data) {
 
-            if(err) {
+            if (err) {
                 console.log("/resumable/upload/media - read chunk file from http post err");
                 return res.sendStatus(400);
             }
 
-            fs.writeFile(resumableFilePath, data, function(err) {
+            fs.writeFile(resumableFilePath, data, function (err) {
                 if (err) {
                     console.log("/resumable/upload/media - write chunk file err");
                     res.sendStatus(400);
@@ -83,7 +83,7 @@ var AssetStore = function(ops) {
         });
     });
 
-    router.post('/resumable/final', function(req, res) {
+    router.post('/resumable/final', function (req, res) {
 
         console.log("/resumable/final request made : " + JSON.stringify(req.body));
 
@@ -91,7 +91,7 @@ var AssetStore = function(ops) {
         var relativePath = req.body.relativePath;
         var resumableIdentifier = req.body.uniqueIdentifier;
         var mediaType = req.body.mediaType;
-        
+
         // APEP async function to write chunk to a single stream, the write stream is reused for each chunk 
         function readChunkAndWriteToFile(chunkFilePath, writeStream, isEnd, callback) {
             var r = fs.createReadStream(chunkFilePath);
@@ -100,7 +100,7 @@ var AssetStore = function(ops) {
                 end: isEnd
             });
 
-            r.on('end', function() {
+            r.on('end', function () {
                 callback(null, true)
             });
         }
@@ -112,34 +112,34 @@ var AssetStore = function(ops) {
 
         // APEP for each chunk, create async task object populated with a function to read and write streams per chunk, 
         // this is going to be executed in series with support for async read and writing of streams
-        for(var i = 1; i <= numberOfChunks; i++) {
+        for (var i = 1; i <= numberOfChunks; i++) {
             var fileName = resumableMediaUploadTempDir + i + "-" + resumableIdentifier + relativePath;
             taskObject[i] = readChunkAndWriteToFile.bind(null, fileName, w, i == numberOfChunks);
         }
 
         // APEP run the task object through async series, if the result is successful we know we've written the chunks
         // back to a single file and now can be written to DB and Azure blob storage
-        async.series(taskObject, function(err, results){
-            if(err) {
+        async.series(taskObject, function (err, results) {
+            if (err) {
                 return res.statusCode(400);
             }
-            
+
             // APEP Detect media type and storage acccordingly
-            if(mediaType === IMAGE_RESUMABLE_MEDIA_TYPE) {
-                routes.resumableImageCreate(ImageMediaObject, finalMediaObjectFilePath, relativePath, function(vmob){
+            if (mediaType === IMAGE_RESUMABLE_MEDIA_TYPE) {
+                routes.resumableImageCreate(ImageMediaObject, finalMediaObjectFilePath, relativePath, function (vmob) {
                     res.status(200).send(vmob);
                 });
             } else if (mediaType === VIDEO_RESUMABLE_MEDIA_TYPE) {
-                routes.resumableVideoCreate(VideoMediaObject, finalMediaObjectFilePath, relativePath, function(vmob){
+                routes.resumableVideoCreate(VideoMediaObject, finalMediaObjectFilePath, relativePath, function (vmob) {
                     res.status(200).send(vmob);
                 });
             } else {
                 res.statusCode(400);
             }
-            
+
         });
     });
-    
+
     router.post('/remove-unused-images', routes.removeUnusedImages(ImageMediaObject, MediaScene));
 
     function requireToken(req, res, next) {
@@ -148,11 +148,11 @@ var AssetStore = function(ops) {
             return next();
         }
 
-        if ( req.body.token ) {
+        if (req.body.token) {
 
             console.log("Looking for session with _id: " + req.body.token);
 
-            Session.findOne({'_id': req.body.token}, function(err, sess) {
+            Session.findOne({'_id': req.body.token}, function (err, sess) {
                 if (err) throw err;
 
                 if (sess) {
@@ -166,8 +166,8 @@ var AssetStore = function(ops) {
         }
     }
 
-    app.use('/api', requireToken, router);    
-    
+    app.use('/api', requireToken, router);
+
     app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject));
     app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject));
 
@@ -177,12 +177,12 @@ var AssetStore = function(ops) {
     app.post('/vimeo/media-for-transcoding', routes.videoCreateFromVimeoDownloader(VideoMediaObject, MediaScene));
 };
 
-AssetStore.prototype.listen = function(cb) {
+AssetStore.prototype.listen = function (cb) {
     // init the container
     this._server.listen(this._ops.port, cb);
 };
 
-AssetStore.prototype.close = function(cb) {
+AssetStore.prototype.close = function (cb) {
     this._server.close(cb);
 };
 
