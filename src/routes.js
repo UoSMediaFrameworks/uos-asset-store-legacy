@@ -190,7 +190,6 @@ module.exports = {
     },
     retrieveVideoMediaStranscodedStatus: function (VideoMediaObject) {
         return function (req, res) {
-            console.log("retrieveVideoMediaStranscodedStatus: ", req.body.url);
             var indices = [];
             for (var i = 0; i < req.body.url.length; i++) {
                 if (req.body.url[i] === "/") indices.push(i + 1);
@@ -198,8 +197,8 @@ module.exports = {
             var assetId = req.body.url.substring(indices[indices.length - 2], (indices[indices.length - 1] - 1));
             VideoMediaObject.findOne({_id: assetId}, function (err, data) {
                 if (err) return res.sendStatus(400);
-
-                res.status(200).send(data);
+                console.log(data)
+                res.status(200).send({parentId:req.body.parentId,data:data});
             });
         }
     },
