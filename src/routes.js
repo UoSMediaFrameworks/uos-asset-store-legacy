@@ -73,10 +73,83 @@ function getTranscoderValue() {
     return transcoder;
 }
 
+function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
+
+    if(mediaScene.scene.length <= 0) {
+        return true;
+    }
+
+    var imageOrVideoMedia = _.find(mediaScene.scene, function(media){
+        return media.type === "video" || media.type === "image";
+    });
+
+    if(imageOrVideoMedia.length > 0) {
+        return true;
+    }
+
+    return false;
+}
+
 module.exports = {
 
-    videoCreateFromVimeoDownloader: function (VideoMediaObject, MediaScene) {
-        return function (req, res) {
+    getMediaSceneWithObjectsAppended: function(VideoMediaObject, ImageMediaObject, MediaScene) {
+        return function(req, res) {
+            var mediaSceneId = req.body.sceneId;
+
+            MediaScene.findOne({_id: mediaSceneId}, function(err, mediaScene){
+                if(err || !mediaScene) {
+                    return res.sendStatus(400);
+                }
+
+                if(isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene)) {
+                    return res.send(mediaScene).end();
+                }
+
+                function appendFullMediaObjectToSceneMediaObject(mO, callback) {
+                    if(mO.type !== "video") {
+                        callback(null, mO);
+                    } else {
+
+                        if(mO.type === "video") {
+                            VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
+                                if(err || !vmob) {
+                                    callback(null, mO);
+                                } else {
+                                    mO.vmob = vmob;
+                                    callback(null, mO);
+                                }
+                            });
+                        }
+
+                    }
+                }
+
+                var taskObject = {};
+
+                _.forEach(mediaScene.scene, function(mO, index) {
+                    taskObject[index] = appendFullMediaObjectToSceneMediaObject.bind(null, mO);
+                });
+
+                async.parallel(taskObject, function(err, results){
+                    if(err) {
+                        return res.statusCode(400);
+                    }
+
+                    var scene = [];
+                    _.forEach(Object.keys(results), function(resultKey){
+                        scene.push(results[resultKey]);
+                    });
+
+                    mediaScene.scene = scene;
+
+                    res.send(mediaScene).end();
+                });
+            });
+        }
+    },
+
+    videoCreateFromVimeoDownloader: function(VideoMediaObject, MediaScene) {
+        return function(req, res) {
 
             console.log("Begin: videoCreateFromVimeoDownloader");
 
