@@ -382,38 +382,32 @@ module.exports = {
         };
     },
 
-    removeUnusedImages: function (ImageMediaObject, MediaScene) {
-        return function (req, res) {
+    removeUnusedImages: function(ImageMediaObject, MediaScene) {
+        return function(req, res) {
             // first get all of the image urls in the scenes
-            MediaScene.find({'scene.type': 'image'}, 'scene.url', function (err, docs) {
+            MediaScene.find({'scene.type': 'image'}, 'scene.url', function(err, docs) {
                 // get all image urls in all docs, unique the list
                 // pretty big hack here, this should really be done at the db level,
                 // but that can be fixed down the road
-                var undefinedOrNull = function (v) {
-                    return v === undefined || v === null
-                };
-                var imgUrls = _(_.map(docs, function (x) {
-                    return x.toObject();
-                }))
-                    .pluck('scene')
-                    .flatten()
-                    .reject(undefinedOrNull)
-                    .pluck('url')
-                    .uniq()
-                    .valueOf();
+                var undefinedOrNull = function(v) { return v  === undefined || v === null };
+                var imgUrls = _(_.map(docs, function(x) {return x.toObject();}))
+                                .pluck('scene')
+                                .flatten()
+                                .reject(undefinedOrNull)
+                                .pluck('url')
+                                .uniq()
+                                .valueOf();
 
                 //Bit of a niggly hack but map the imgUrls within the scene into arrays providing their thumbnail counterpart
-                imgUrls = _(_.map(imgUrls, function (x) {
-                    return [x, getImageMediaObjectThumbnailUrl(x)]
-                }))
+                imgUrls = _(_.map(imgUrls, function(x) { return [x, getImageMediaObjectThumbnailUrl(x) ]}))
                     .flatten()
                     .valueOf();
-
-                ImageMediaObject.find().where('image.url').nin(imgUrls).exec(function (err, imgDocs) {
+                        
+                ImageMediaObject.find().where('image.url').nin(imgUrls).exec(function(err, imgDocs) {
                     // we have to call delete on each one to trigger the deletion of the record in the blob
-                    async.mapLimit(imgDocs, 4, function (imob, callback) {
+                    async.mapLimit(imgDocs, 4, function(imob, callback) {
                         imob.remove(callback);
-                    }, function (err) {
+                    }, function(err) {
                         if (err) {
                             res.status(500).send(err.toString());
                         } else {
