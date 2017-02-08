@@ -83,11 +83,11 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
         return media.type === "video" || media.type === "image";
     });
 
-    if(imageOrVideoMedia.length > 0) {
+    if(imageOrVideoMedia && imageOrVideoMedia.length > 0) {
         return true;
     }
 
-    return false;
+    return imageOrVideoMedia && imageOrVideoMedia.length > 0;
 }
 
 module.exports = {
