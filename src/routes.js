@@ -79,7 +79,7 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
         return true;
     }
 
-    var imageOrVideoMedia = _.filter(mediaScene.scene, function(media){
+    var imageOrVideoMedia = _.find(mediaScene.scene, function(media){
         return media.type === "video" || media.type === "image";
     });
 
