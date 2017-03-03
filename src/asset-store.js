@@ -172,6 +172,7 @@ var AssetStore = function (ops) {
 
     app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject));
     app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject));
+    app.post('/media-transcoding-started', routes.updateMediaForTranscodingStarted(VideoMediaObject));
 
     //APEP one off api for split transcoding from vimeo upload
     app.get('/one-off/media-for-transcoding', routes.retrieveMediaForTranscodingForVimeoBatchUploading(VideoMediaObject));

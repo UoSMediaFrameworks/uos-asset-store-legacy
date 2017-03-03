@@ -8,6 +8,7 @@ var async = require('async');
 var sharp = require('sharp');
 var ImageProcessing = require('./image-processing');
 var VideoProcessing = require('./video-processing');
+var moment = require('moment');
 
 function _getDublinCoreTags(data, cb) {
     xmp.read(data, function (err, xmlData) {
@@ -278,6 +279,31 @@ module.exports = {
         }
     },
 
+    updateMediaForTranscodingStarted: function (VideoMediaObject) {
+        return function (req, res) {
+            console.log("updateMediaForTranscodingStarted: ", req.body);
+
+            var transcodingMediaObject = req.body.transcodingMediaObject;
+
+            if (!transcodingMediaObject) {
+                return res.status(400).send('No transcoding media data found');
+            }
+
+            var conditions = {_id: transcodingMediaObject._id}
+                , update = {transcodingStartedTimestamp: moment.utc() }
+                , options = {multi: false};
+
+            VideoMediaObject.update(conditions, update, options, function (err, numAffected) {
+                if (err) {
+                    console.log("updateMediaForTranscodingStarted - database update error - err: ", err);
+                    return res.status(400).send('Database failure - please check the logs');
+                }
+
+                return res.sendStatus(200);
+            });
+        }
+    },
+
     updateMediaForTranscoding: function (VideoMediaObject) {
         return function (req, res) {
 
@@ -299,7 +325,7 @@ module.exports = {
             _.forEach(transcodedMediaData, function (transcodedMedia) {
 
                 var conditions = {_id: transcodedMedia._id}
-                    , update = {hasTranscoded: true}
+                    , update = {hasTranscoded: true, transcodedTimestamp: moment.utc() }
                     , options = {multi: false};
 
                 VideoMediaObject.update(conditions, update, options, function (err, numAffected) {

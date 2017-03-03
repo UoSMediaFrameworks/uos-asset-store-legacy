@@ -1,7 +1,6 @@
 'use strict';
 var util = require('util');
-
-
+var moment = require('moment');
 
 function getUrl(videoUrl) {
     return util.format('https://%s.blob.core.windows.net/%s/%s', "uosassetstore", "assetstoredev", videoUrl);
@@ -9,12 +8,16 @@ function getUrl(videoUrl) {
 
 module.exports = function() {
     return {
+
+        /**
+         * Store the video media object in both azure and the database
+         */
         storeVideo: function(VideoMediaObject, videoFilePath, videoFileName, callback) {
             console.log("Video Processing - storeVideo");
 
             var vmod = new VideoMediaObject(); //HAS ID AT THIS POINT
 
-            vmod.attach('video', { id: vmod._id, path: videoFilePath, name: videoFileName }, function(error, result) {
+            vmod.attach('video', { id: vmod._id, path: videoFilePath, name: videoFileName, uploadedTimestamp: moment.utc() }, function(error, result) {
 
                 if (error) throw error;
 
@@ -28,6 +31,9 @@ module.exports = function() {
 
         },
 
+        /**
+         * Function written for the batch vimeo videos that have been ported from vimeo to our system
+         */
         storeVimeoVideo: function(VideoMediaObject, videoFileName, videoName, vimeoId, transcoder, description, size, callback) {
             console.log("Video Processing - storeVimeoVideo[" +
                 "videoFileName: " + videoFileName + ", " +
@@ -55,7 +61,6 @@ module.exports = function() {
         },
 
         uploadVideo: function(VideoMediaObject, videoFilePath, videoFileName, callback) {
-
             this.storeVideo(VideoMediaObject, videoFilePath, videoFileName, callback);
         }
     }
