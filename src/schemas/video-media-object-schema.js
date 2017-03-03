@@ -12,7 +12,11 @@ var VideoSchema = new mongoose.Schema({
 
     transcoder: Number, //simple odd or even for basic parallelisation of transcoding
     vimeoId: String,
-    description: String
+    description: String,
+
+    uploadedTimestamp: { type: Number, default: 0 },
+    transcodedTimestamp:  { type: Number, default: 0 },
+    transcodingStartedTimestamp: { type: Number, default: 0 }
 });
 
 VideoSchema.plugin(crate, {
