@@ -14,9 +14,9 @@ var VideoSchema = new mongoose.Schema({
     vimeoId: String,
     description: String,
 
-    uploadedTimestamp: { type: Number, default: 0 },
-    transcodedTimestamp:  { type: Number, default: 0 },
-    transcodingStartedTimestamp: { type: Number, default: 0 }
+    uploadedTimestamp: { type: String, default: "" },
+    transcodedTimestamp:  { type: String, default: "" },
+    transcodingStartedTimestamp: { type: String, default: "" }
 });
 
 VideoSchema.plugin(crate, {
