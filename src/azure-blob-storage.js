@@ -45,6 +45,7 @@ AzureBlobStorage.prototype.save = function(media, cb) {
 	} else {
 
 		var mediaForStoragePath;
+		// APEP TODO - Consideration for team - some badly created videos are marked as type application/octet-stream, causing the below to use image url generation logic for videos
 		if(media.type.startsWith("video")) {
 			mediaForStoragePath = "video/raw/" + media.id + "/" + media.name;
 		} else {
