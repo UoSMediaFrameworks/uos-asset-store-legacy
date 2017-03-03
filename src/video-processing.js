@@ -15,9 +15,12 @@ module.exports = function() {
         storeVideo: function(VideoMediaObject, videoFilePath, videoFileName, callback) {
             console.log("Video Processing - storeVideo");
 
-            var vmod = new VideoMediaObject(); //HAS ID AT THIS POINT
+            var vmod = new VideoMediaObject(); // APEP an ID is set during constructor
 
-            vmod.attach('video', { id: vmod._id, path: videoFilePath, name: videoFileName, uploadedTimestamp: moment.utc() }, function(error, result) {
+            // APEP Set a timestamp for the final upload time
+            vmod.uploadedTimestamp = moment.utc();
+
+            vmod.attach('video', { id: vmod._id, path: videoFilePath, name: videoFileName }, function(error, result) {
 
                 if (error) throw error;
 
