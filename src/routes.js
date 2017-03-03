@@ -261,7 +261,7 @@ module.exports = {
             });
         }
     },
-    retrieveVideoMediaStranscodedStatus: function (VideoMediaObject) {
+    retrieveVideoMediaTranscodedStatus: function (VideoMediaObject) {
         return function (req, res) {
             var indices = [];
             for (var i = 0; i < req.body.url.length; i++) {
@@ -270,7 +270,9 @@ module.exports = {
             var assetId = req.body.url.substring(indices[indices.length - 2], (indices[indices.length - 1] - 1));
             VideoMediaObject.findOne({_id: assetId}, function (err, data) {
                 if (err) return res.sendStatus(400);
-                console.log(data)
+
+                console.log("retrieveVideoMediaStranscodedStatus - searching and found vmob for transcoded status - vmod: ", data);
+
                 res.status(200).send({parentId:req.body.parentId,data:data});
             });
         }

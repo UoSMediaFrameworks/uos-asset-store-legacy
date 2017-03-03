@@ -47,7 +47,7 @@ var AssetStore = function (ops) {
     }));
 
     router.post('/videos', routes.videoCreate(VideoMediaObject));
-    router.post('/isTranscoded', routes.retrieveVideoMediaStranscodedStatus(VideoMediaObject));
+    router.post('/isTranscoded', routes.retrieveVideoMediaTranscodedStatus(VideoMediaObject));
     //TODO remove unusued videos
 
     router.post('/images', routes.imageCreate(ImageMediaObject));
