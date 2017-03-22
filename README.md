@@ -1,7 +1,9 @@
 AssetStore
 ==========
 
-Accept's image uploads, parses out any xmp tags, uploads the image to Azure blob storage, and returns the blob url and the parsed out tags
+Accept's image uploads, parses out any xmp tags, uploads the image to Azure blob storage, and returns the blob url and the parsed out tags.
+
+Accept's video uploads, via resumable api
 
 
 Getting Started
@@ -29,4 +31,11 @@ Update run script with appropriate variables for test environment
 
 Run Tests (This will run all tests found that are suitable for mocha)
 * ./run-example.sh mocha
+
+Azure Deployment Notes
+===========
+
+IISNode.yml is specified to allow us to use a 64bit prebuild - checked in dependency
+- This is a 64bit version of node
+
 
