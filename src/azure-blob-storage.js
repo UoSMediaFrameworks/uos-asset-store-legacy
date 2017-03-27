@@ -20,7 +20,7 @@ var AzureBlobStorage = function(options) {
 	var blobSvc = azureStorage.createBlobService(options.account, options.accessKey);
 	blobSvc.createContainerIfNotExists(options.container, {publicAccessLevel: 'blob'}, function(error, result, response) {
 		if (error) {
-			throw error;
+			// throw error;
 		} else {
 			this._blobSvc = blobSvc;
 			this.emit('connected');
