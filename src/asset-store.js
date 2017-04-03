@@ -142,8 +142,11 @@ var AssetStore = function (ops) {
 
     router.post('/scene/full', routes.getMediaSceneWithObjectsAppended(VideoMediaObject, ImageMediaObject, MediaScene));
 
-    router.post('/scene/by/name', function(req, res){
+    router.post('/scene/by/name', function(req, res) {
+        
         var sceneName = req.body.sceneName;
+
+        console.log("/scene/by/name - sceneName: ", sceneName);
 
         MediaScene.find({"name": sceneName}, function(err, scene){
             if(err) {
