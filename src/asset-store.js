@@ -145,7 +145,7 @@ var AssetStore = function (ops) {
     router.post('/scene/by/name', function(req, res){
         var sceneName = req.body.sceneName;
 
-        MediaScene.find({"name": /sceneName/}, function(err, scene){
+        MediaScene.find({"name": sceneName}, function(err, scene){
             if(err) {
                 return res.status(400).send("Error searching for scene by given sceneName");
             }
