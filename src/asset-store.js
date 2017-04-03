@@ -142,6 +142,22 @@ var AssetStore = function (ops) {
 
     router.post('/scene/full', routes.getMediaSceneWithObjectsAppended(VideoMediaObject, ImageMediaObject, MediaScene));
 
+    router.post('/scene/by/name', function(req, res){
+        var sceneName = req.body.sceneName;
+
+        MediaScene.find({"name": /sceneName/}, function(err, scene){
+            if(err) {
+                return res.status(400).send("Error searching for scene by given sceneName");
+            }
+
+            if(!scene) {
+                return res.status(400).send("No scene found by given sceneName");
+            }
+
+            return res.status(200).send(scene);
+        });
+    });
+
     router.post('/remove-unused-images', routes.removeUnusedImages(ImageMediaObject, MediaScene));
 
     function requireToken(req, res, next) {
