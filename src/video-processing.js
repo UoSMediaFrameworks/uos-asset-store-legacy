@@ -20,9 +20,6 @@ module.exports = function() {
             // APEP Set a timestamp for the final upload time
             vmod.uploadedTimestamp = moment.utc();
 
-            // APEP ensure the file name is encoded for URI support
-            videoFileName = encodeURIComponent(videoFileName);
-
             vmod.attach('video', { id: vmod._id, path: videoFilePath, name: videoFileName }, function(error, result) {
 
                 if (error) throw error;

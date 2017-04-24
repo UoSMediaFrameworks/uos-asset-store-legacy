@@ -9,13 +9,8 @@ const maxImageHeight = 768;
 module.exports = function () {
     return {
 
-        // APEP Using mongoose and mongoose crate, use the attach function to add file details
         storeImage: function (ImageMediaObject, imageFilePath, imageFileName, callback) {
             var imob = new ImageMediaObject();
-
-            // APEP ensure the file name is encoded for URI support
-            imageFileName = encodeURIComponent(imageFileName);
-
             imob.attach('image', { id: imob._id, path: imageFilePath, name: imageFileName }, function(error, result) {
                 if (error) throw error;
 
@@ -45,7 +40,6 @@ module.exports = function () {
                 as it will have a type of png or otherwise it will error
 
              */
-            // APEP Maybe it's better if we change the extension to match the change been made (usage of .png())?
 
             imageToUpload
                 .resize(undefined, thumbnailHeight)
