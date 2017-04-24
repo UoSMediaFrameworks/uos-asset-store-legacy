@@ -52,10 +52,6 @@ AzureBlobStorage.prototype.save = function(media, cb) {
 			mediaForStoragePath = media.id + "/" + media.name;
 		}
 		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
-
-			console.log("result: ", result);
-			console.log("response: ", response);
-
 			cb(error, error ? undefined : this._urlPartial(mediaForStoragePath));
 		}.bind(this));
 	}
