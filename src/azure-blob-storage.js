@@ -39,23 +39,24 @@ AzureBlobStorage.prototype._urlPartial = function(mediaForStoragePath) {
 	return util.format('https://%s.blob.core.windows.net/%s/', this._options.account, this._options.container) + mediaForStoragePath;
 };
 
+AzureBlobStorage.prototype._getStoragePathForMedia = function(media) {
+    if(media.type.startsWith("video")) {
+        return "video/raw/" + media.id + "/" + media.name;
+    } else if (media.type.startsWith("audio")) {
+        return "audio/raw/" + media.id + "/" + media.name;
+    } else {
+        return media.id + "/" + media.name;
+    }
+};
+
 AzureBlobStorage.prototype.save = function(media, cb) {
 	if (! this._blobSvc) {
 		return this.on('connected', this.save.bind(this, media, cb));
 	} else {
 
-		var mediaForStoragePath;
-		// APEP TODO - Consideration for team - some badly created videos are marked as type application/octet-stream, causing the below to use image url generation logic for videos
-		if(media.type.startsWith("video")) {
-			mediaForStoragePath = "video/raw/" + media.id + "/" + media.name;
-		} else {
-			mediaForStoragePath = media.id + "/" + media.name;
-		}
+		var mediaForStoragePath = this._getStoragePathForMedia(media);
+
 		this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
-
-			console.log("result: ", result);
-			console.log("response: ", response);
-
 			cb(error, error ? undefined : this._urlPartial(mediaForStoragePath));
 		}.bind(this));
 	}

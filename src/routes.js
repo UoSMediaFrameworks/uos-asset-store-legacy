@@ -8,6 +8,7 @@ var async = require('async');
 var sharp = require('sharp');
 var ImageProcessing = require('./image-processing');
 var VideoProcessing = require('./video-processing');
+var AudioProcessing = require('./sound-processing');
 var moment = require('moment');
 
 function _getDublinCoreTags(data, cb) {
@@ -92,6 +93,26 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
 }
 
 module.exports = {
+
+    getMediaSceneByName: function(MediaScene) {
+        return function(req, res) {
+            var sceneName = req.body.sceneName;
+
+            console.log("/scene/by/name - sceneName: ", sceneName);
+
+            MediaScene.find({"name": sceneName}, function(err, scene){
+                if(err) {
+                    return res.status(400).send("Error searching for scene by given sceneName");
+                }
+
+                if(!scene) {
+                    return res.status(400).send("No scene found by given sceneName");
+                }
+
+                return res.status(200).send(scene);
+            });
+        };
+    },
 
     getMediaSceneWithObjectsAppended: function(VideoMediaObject, ImageMediaObject, MediaScene) {
         return function(req, res) {
@@ -186,6 +207,25 @@ module.exports = {
         }
     },
 
+    resumableAudioCreate: function(AudioMediaObject, resumableCompletedFilePath, resumableCompletedFileName, callback) {
+        fs.readFile(resumableCompletedFilePath, function (err, data) {
+            if (err) throw err;
+
+            var fileAudioPath = resumableCompletedFilePath;
+            var fileAudioName = resumableCompletedFileName;
+
+            var audioProcessor = AudioProcessing();
+
+            audioProcessor.storeAudio(AudioMediaObject, fileAudioPath, fileAudioName, function(err, amod) {
+                console.log("Successfully attempted a audio upload amod: ", amod);
+                callback({
+                    tags: "",
+                    url: amod.audio.url
+                });
+            });
+        });
+    },
+
     resumableVideoCreate: function (VideoMediaObject, resumableCompletedFilePath, resumableCompletedFileName, callback) {
         fs.readFile(resumableCompletedFilePath, function (err, data) {
             if (err) throw err;
@@ -229,17 +269,37 @@ module.exports = {
         }
     },
 
-    retrieveMediaForTranscoding: function (VideoMediaObject) {
+    retrieveMediaForTranscoding: function (VideoMediaObject, AudioMediaObject) {
         return function (req, res) {
-            VideoMediaObject.find({hasTranscoded: false}, function (err, data) {
+
+            function findMediaForTranscoding(MediaObject, callback) {
+                MediaObject.find({hasTranscoded: false}, function (err, data) {
+                    if (err) return callback(true);
+                    callback(null, data)
+                });
+            }
+
+            var taskObject = {
+                0: findMediaForTranscoding.bind(null, VideoMediaObject),
+                1: findMediaForTranscoding.bind(null, AudioMediaObject)
+            };
+
+            async.parallel(taskObject, function(err, results){
                 if (err) return res.sendStatus(400);
 
+                var mediaObjects = [];
+
+                _.forEach(Object.keys(results), function(resultKey){
+                    mediaObjects = mediaObjects.concat(results[resultKey]);
+                });
+
                 var mediaForTranscoding = {
-                    mediaForTranscoding: data
+                    mediaForTranscoding: mediaObjects
                 };
 
                 res.status(200).send(mediaForTranscoding);
             });
+
         }
     },
 

@@ -8,6 +8,7 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var ImageMediaObjectSchema = require('./schemas/image-media-object-schema');
 var VideoMediaObjectSchema = require('./schemas/video-media-object-schema');
+var AudioMediaObjectSchema = require('./schemas/audio-media-object-schema');
 var SessionSchema = require('./schemas/session-schema');
 var MediaSceneSchema = require('./schemas/media-scene-schema');
 var routes = require('./routes');
@@ -18,6 +19,7 @@ var resumableMediaUploadTempDir = osTmpdir() + "/";
 
 const IMAGE_RESUMABLE_MEDIA_TYPE = "image";
 const VIDEO_RESUMABLE_MEDIA_TYPE = "video";
+const AUDIO_RESUMABLE_MEDIA_TYPE = "audio";
 
 var AssetStore = function (ops) {
     this._ops = ops;
@@ -29,16 +31,22 @@ var AssetStore = function (ops) {
 
     var db = mongoose.createConnection(ops.mongoConnection);
 
+    // APEP Using mongoose, get handles to each of the document stores
     var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
     var VideoMediaObject = db.model('VideoMediaObject', VideoMediaObjectSchema);
+    var AudioMediaObject = db.model('AudioMediaObject', AudioMediaObjectSchema);
+
     var Session = db.model('sessions', SessionSchema);
     var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
+
+    // APEP set cross origin headers to allow our different environment and DNS addresses access to the API
     app.use(function (req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         next();
     });
-    
+
+    // APEP ensure the upload size is suitable : TODO using resumable JS, this could be reduced.
     app.use(bodyParser.json({limit: '1024mb'}));
     app.use(bodyParser.urlencoded({limit: '1024mb', extended: true}));
 
@@ -52,6 +60,7 @@ var AssetStore = function (ops) {
 
     router.post('/images', routes.imageCreate(ImageMediaObject));
 
+    // APEP Upload Chunk API
     router.post('/resumable/upload/media', function (req, res) {
 
         var resumableFilename = req.body.resumableFilename;
@@ -83,6 +92,7 @@ var AssetStore = function (ops) {
         });
     });
 
+    // APEP Upload completed API
     router.post('/resumable/final', function (req, res) {
 
         console.log("/resumable/final request made : " + JSON.stringify(req.body));
@@ -114,7 +124,7 @@ var AssetStore = function (ops) {
         // this is going to be executed in series with support for async read and writing of streams
         for (var i = 1; i <= numberOfChunks; i++) {
             var fileName = resumableMediaUploadTempDir + i + "-" + resumableIdentifier + relativePath;
-            taskObject[i] = readChunkAndWriteToFile.bind(null, fileName, w, i == numberOfChunks);
+            taskObject[i] = readChunkAndWriteToFile.bind(null, fileName, w, i === numberOfChunks);
         }
 
         // APEP run the task object through async series, if the result is successful we know we've written the chunks
@@ -124,7 +134,7 @@ var AssetStore = function (ops) {
                 return res.statusCode(400);
             }
 
-            // APEP Detect media type and storage acccordingly
+            // APEP Detect media type and storage & save correctly per type of media
             if (mediaType === IMAGE_RESUMABLE_MEDIA_TYPE) {
                 routes.resumableImageCreate(ImageMediaObject, finalMediaObjectFilePath, relativePath, function (vmob) {
                     res.status(200).send(vmob);
@@ -133,33 +143,19 @@ var AssetStore = function (ops) {
                 routes.resumableVideoCreate(VideoMediaObject, finalMediaObjectFilePath, relativePath, function (vmob) {
                     res.status(200).send(vmob);
                 });
+            } else if (mediaType === AUDIO_RESUMABLE_MEDIA_TYPE) {
+                routes.resumableAudioCreate(AudioMediaObject, finalMediaObjectFilePath, relativePath, function (amob) {
+                    res.status(200).send(amob);
+                });
             } else {
                 res.statusCode(400);
             }
-
         });
     });
 
     router.post('/scene/full', routes.getMediaSceneWithObjectsAppended(VideoMediaObject, ImageMediaObject, MediaScene));
 
-    router.post('/scene/by/name', function(req, res) {
-        
-        var sceneName = req.body.sceneName;
-
-        console.log("/scene/by/name - sceneName: ", sceneName);
-
-        MediaScene.find({"name": sceneName}, function(err, scene){
-            if(err) {
-                return res.status(400).send("Error searching for scene by given sceneName");
-            }
-
-            if(!scene) {
-                return res.status(400).send("No scene found by given sceneName");
-            }
-
-            return res.status(200).send(scene);
-        });
-    });
+    router.post('/scene/by/name', routes.getMediaSceneByName(MediaScene));
 
     router.post('/remove-unused-images', routes.removeUnusedImages(ImageMediaObject, MediaScene));
 
@@ -189,13 +185,15 @@ var AssetStore = function (ops) {
 
     app.use('/api', requireToken, router);
 
-    app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject));
+    // APEP Non secured API endpoints for communication with our python transcoder job submission app
+    // TODO review the security and implement some basic measures.
+    app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject, AudioMediaObject));
     app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject));
     app.post('/media-transcoding-started', routes.updateMediaForTranscodingStarted(VideoMediaObject));
 
-    //APEP one off api for split transcoding from vimeo upload
+    // APEP one off api for split transcoding from vimeo upload
+    // APEP TODO deprecated both below
     app.get('/one-off/media-for-transcoding', routes.retrieveMediaForTranscodingForVimeoBatchUploading(VideoMediaObject));
-
     app.post('/vimeo/media-for-transcoding', routes.videoCreateFromVimeoDownloader(VideoMediaObject, MediaScene));
 };
 
