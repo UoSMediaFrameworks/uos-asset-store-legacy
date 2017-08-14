@@ -188,7 +188,7 @@ var AssetStore = function (ops) {
     // APEP Non secured API endpoints for communication with our python transcoder job submission app
     // TODO review the security and implement some basic measures.
     app.get('/media-for-transcoding', routes.retrieveMediaForTranscoding(VideoMediaObject, AudioMediaObject));
-    app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject));
+    app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject, AudioMediaObject));
     app.post('/media-transcoding-started', routes.updateMediaForTranscodingStarted(VideoMediaObject));
 
     // APEP one off api for split transcoding from vimeo upload

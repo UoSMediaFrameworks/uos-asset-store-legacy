@@ -364,7 +364,7 @@ module.exports = {
         }
     },
 
-    updateMediaForTranscoding: function (VideoMediaObject) {
+    updateMediaForTranscoding: function (VideoMediaObject, AudioMediaObject) {
         return function (req, res) {
 
             console.log("updateMediaForTranscoding: ", req.body);
@@ -388,7 +388,9 @@ module.exports = {
                     , update = {hasTranscoded: true, transcodedTimestamp: moment.utc() }
                     , options = {multi: false};
 
-                VideoMediaObject.update(conditions, update, options, function (err, numAffected) {
+                var MediaObject = transcodedMedia.type && transcodedMedia.type === "audio" ? AudioMediaObject : VideoMediaObject;
+
+                MediaObject.update(conditions, update, options, function (err, numAffected) {
                     if (err)
                         return res.statusCode(400);
 
