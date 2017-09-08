@@ -6,7 +6,8 @@
  */
 var mongoose = require('mongoose');
 var crate = require('mongoose-crate');
-var AzureBlobStorage = require('../azure-blob-storage');
+var AzureBlobStorage = require('../azure-blob-storage').AzureBlobStorage;
+var LocalBlobStorage = require('../azure-blob-storage').LocalBlobStorage;
 var config = require('../../config');
 
 var AudioSchema = new mongoose.Schema({
@@ -21,11 +22,7 @@ var AudioSchema = new mongoose.Schema({
 });
 
 AudioSchema.plugin(crate, {
-    storage: new AzureBlobStorage({
-        account: config.account,
-        accessKey: config.accessKey,
-        container: config.container
-    }),
+    storage: new LocalBlobStorage(config),
     fields: {
         audio: {}
     }

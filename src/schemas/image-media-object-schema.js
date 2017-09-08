@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 var crate = require('mongoose-crate');
-var AzureBlobStorage = require('../azure-blob-storage');
+var LocalBlobStorage = require('../azure-blob-storage').LocalBlobStorage;
+var AzureBlobStorage = require('../azure-blob-storage').AzureBlobStorage;
 var config = require('../../config');
 
 var ImageSchema = new mongoose.Schema({
@@ -9,11 +10,7 @@ var ImageSchema = new mongoose.Schema({
 });
 
 ImageSchema.plugin(crate, {
-	storage: new AzureBlobStorage({
-		account: config.account,
-		accessKey: config.accessKey,
-		container: config.container
-	}),
+	storage: new LocalBlobStorage(config),
 	fields: {
 		image: {}
 	}
