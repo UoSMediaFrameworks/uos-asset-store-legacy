@@ -244,31 +244,6 @@ module.exports = {
         });
     },
 
-    videoCreate: function (VideoMediaObject) {
-        return function (req, res) {
-            if (!req.files.video) {
-                return res.sendStatus(400);
-            }
-
-            fs.readFile(req.files.video.path, function (err, data) {
-                if (err) throw err;
-
-                var fileVideoPath = req.files.video.path;
-                var fileVideoName = req.body.filename;
-
-                var videoProcessor = VideoProcessing();
-                videoProcessor.uploadVideo(VideoMediaObject, fileVideoPath, fileVideoName, function (error, vmod) {
-                    console.log("Successfully attempted a video upload vmod: ", vmod);
-                    res.status(200).send({
-                        tags: "",
-                        url: vmod.video.url
-                    });
-                });
-
-            });
-        }
-    },
-
     retrieveMediaForTranscoding: function (VideoMediaObject, AudioMediaObject) {
         return function (req, res) {
 
@@ -322,6 +297,7 @@ module.exports = {
             });
         }
     },
+
     retrieveVideoMediaTranscodedStatus: function (VideoMediaObject) {
         return function (req, res) {
             var indices = [];
@@ -437,43 +413,13 @@ module.exports = {
         });
     },
 
-    imageCreate: function (ImageMediaObject) {
-        return function (req, res) {
-            if (!req.files.image) {
-                return res.sendStatus(400);
-            }
-
-            fs.readFile(req.files.image.path, function (err, data) {
-                if (err) throw err;
-
-                var fileImagePath = req.files.image.path;
-                var fileImageName = req.body.filename;
-                var imageToUpload = sharp(fileImagePath);
-
-                _getTags(data, function (err, tags) {
-                    if (err) {
-                        return res.status(400).send({error: err});
-                    }
-
-                    var imageProcessor = ImageProcessing();
-                    // Indiscriminately upload a thumbnail for each image uploaded
-                    imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (err, thumbnailImob) {
-                        imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (imob) {
-                            console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
-                            res.status(200).send({
-                                tags: tags,
-                                url: imob.image.url
-                            });
-                        });
-                    });
-                });
-
-            });
-        };
-    },
-
     removeUnusedImages: function(ImageMediaObject, MediaScene) {
         return function(req, res) {
+
+            // APEP TODO this is defunct now and will need to be updated.
+
+            return res.status(500).send("Not currently supported");
+
             // first get all of the image urls in the scenes
             MediaScene.find({'scene.type': 'image'}, 'scene.url', function(err, docs) {
                 // get all image urls in all docs, unique the list

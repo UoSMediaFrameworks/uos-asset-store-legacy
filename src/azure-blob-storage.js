@@ -85,6 +85,13 @@ class AzureBlobStorage extends MediaBlobStore {
         if (! this._blobSvc) {
             return this.on('connected', this.remove.bind(this, image, cb));
         } else {
+
+
+            // APEP TODO Do media type dependent remove.  The below will not work for any of our media types anymore.
+
+            // APEP We should also move to deleting the folders, as then all the media for this mediaobject id is removed
+            // For example, image folder has 3 media and video n number of media.  Removing the folder is the best cleaning strategy
+
             // get the blob name from the url
             var blobName = url.parse(image.url).path.match(/\/\w+\/(.*)/)[1];
             console.log('deleting blob ' + blobName);

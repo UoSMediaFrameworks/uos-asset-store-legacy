@@ -54,11 +54,8 @@ var AssetStore = function (ops) {
         dest: this._ops.uploadDir
     }));
 
-    router.post('/videos', routes.videoCreate(VideoMediaObject));
     router.post('/isTranscoded', routes.retrieveVideoMediaTranscodedStatus(VideoMediaObject));
     //TODO remove unusued videos
-
-    router.post('/images', routes.imageCreate(ImageMediaObject));
 
     // APEP Upload Chunk API
     router.post('/resumable/upload/media', function (req, res) {
