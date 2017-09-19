@@ -12,7 +12,9 @@ var ImageSchema = new mongoose.Schema({
 ImageSchema.plugin(crate, {
 	storage: new LocalBlobStorage(config),
 	fields: {
-		image: {}
+		image: {},
+		thumbnail: {},
+		resized: {}
 	}
 });
 

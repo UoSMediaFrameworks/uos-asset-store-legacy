@@ -399,24 +399,27 @@ module.exports = {
                 }
 
                 var imageProcessor = ImageProcessing();
-                // Indiscriminately upload a thumbnail for each image uploaded
-                imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (err, thumbnailImob) {
-                    imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (imob) {
-                        console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
-                        callback({
-                            tags: tags,
-                            url: imob.image.url
-                        });
+
+                imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (err, imob) {
+                    console.log("Successfully saved new ImageMediaObject err:", err);
+                    console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
+
+                    // APEP TODO we should just callback;
+                    if(err) throw err;
+
+                    callback({
+                        tags: tags,
+                        url: imob.image.url
                     });
                 });
             });
         });
     },
 
+
+    // APEP TODO this is defunct now and will need to be updated.
     removeUnusedImages: function(ImageMediaObject, MediaScene) {
         return function(req, res) {
-
-            // APEP TODO this is defunct now and will need to be updated.
 
             return res.status(500).send("Not currently supported");
 
