@@ -63,7 +63,7 @@ module.exports = function() {
             
         },
 
-        uploadVideo: function(VideoMediaObject, videoFilePath, videoFileName, callback) {
+        upload: function(VideoMediaObject, videoFilePath, videoFileName, callback) {
             this.storeVideo(VideoMediaObject, videoFilePath, videoFileName, callback);
         }
     }

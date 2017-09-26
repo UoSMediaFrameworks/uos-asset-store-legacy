@@ -55,6 +55,7 @@ var AssetStore = function (ops) {
     }));
 
     router.post('/isTranscoded', routes.retrieveVideoMediaTranscodedStatus(VideoMediaObject));
+
     //TODO remove unusued videos
 
     // APEP Upload Chunk API
@@ -150,6 +151,10 @@ var AssetStore = function (ops) {
         });
     });
 
+    // APEP Admin Upload API for things like conversion of external asset to local asset
+    // APEP TODO should be within a new router object, with prepend /admin/api and session check with a groupID check
+    router.post('/upload/media', routes.mediaObjectCreate(ImageMediaObject, VideoMediaObject, AudioMediaObject));
+
     router.post('/scene/full', routes.getMediaSceneWithObjectsAppended(VideoMediaObject, ImageMediaObject, MediaScene));
 
     router.post('/scene/by/name', routes.getMediaSceneByName(MediaScene));
@@ -190,7 +195,6 @@ var AssetStore = function (ops) {
 
     // APEP one off api for split transcoding from vimeo upload
     // APEP TODO deprecated both below
-    app.get('/one-off/media-for-transcoding', routes.retrieveMediaForTranscodingForVimeoBatchUploading(VideoMediaObject));
     app.post('/vimeo/media-for-transcoding', routes.videoCreateFromVimeoDownloader(VideoMediaObject, MediaScene));
 };
 

@@ -5,7 +5,6 @@ var _ = require('lodash');
 var xpath = require('xpath');
 var DOMParser = require('xmldom').DOMParser;
 var async = require('async');
-var sharp = require('sharp');
 var ImageProcessing = require('./image-processing');
 var VideoProcessing = require('./video-processing');
 var AudioProcessing = require('./sound-processing');
@@ -93,6 +92,52 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
 }
 
 module.exports = {
+
+    // APEP generic upload API - this is to allow administrative
+    mediaObjectCreate: function(ImageMediaObject, VideoMediaObject, AudioMediaObject) {
+        return function (req, res) {
+
+            var mediaType = req.body.mediaType;
+
+            // APEP missing file
+            if (!req.files[mediaType] || !req.body.filename) {
+                return res.sendStatus(400);
+            }
+
+            fs.readFile(req.files[mediaType].path, function (err, data) {
+                if (err) throw err;
+
+                var filePath = req.files[mediaType].path;
+                var fileName = req.body.filename;
+
+                var processor = null;
+                var MediaObject = null;
+
+                if(mediaType === "video") {
+                    processor = VideoProcessing();
+                    MediaObject = VideoMediaObject;
+                } else if (mediaType === "image") {
+                    processor = ImageProcessing();
+                    MediaObject = ImageMediaObject;
+                } else if (mediaType === "audio") {
+                    processor = AudioProcessing();
+                    MediaObject = AudioMediaObject;
+                } else {
+                    // APEP invalid media type and unable to find processor
+                    return res.sendStatus(400);
+                }
+
+                processor.upload(MediaObject, filePath, fileName, function (error, mob) {
+                    console.log("Successfully attempted a " + mediaType + " upload mob: ", mob);
+                    res.status(200).send({
+                        tags: "",
+                        url: mob[mediaType].url,
+                        type: mediaType
+                    });
+                });
+            });
+        }
+    },
 
     getMediaSceneByName: function(MediaScene) {
         return function(req, res) {
@@ -216,7 +261,7 @@ module.exports = {
 
             var audioProcessor = AudioProcessing();
 
-            audioProcessor.storeAudio(AudioMediaObject, fileAudioPath, fileAudioName, function(err, amod) {
+            audioProcessor.upload(AudioMediaObject, fileAudioPath, fileAudioName, function(err, amod) {
                 console.log("Successfully attempted a audio upload amod: ", amod);
                 callback({
                     tags: "",
@@ -234,7 +279,7 @@ module.exports = {
             var fileVideoName = resumableCompletedFileName;
 
             var videoProcessor = VideoProcessing();
-            videoProcessor.uploadVideo(VideoMediaObject, fileVideoPath, fileVideoName, function (error, vmod) {
+            videoProcessor.upload(VideoMediaObject, fileVideoPath, fileVideoName, function (error, vmod) {
                 console.log("Successfully attempted a video upload vmod: ", vmod);
                 callback({
                     tags: "",
@@ -275,26 +320,6 @@ module.exports = {
                 res.status(200).send(mediaForTranscoding);
             });
 
-        }
-    },
-
-    retrieveMediaForTranscodingForVimeoBatchUploading: function (VideoMediaObject) {
-        return function (req, res) {
-            //APEP: We updated any VMOB that was not in a scene to be ignored true, this takes all not ignored and limits
-            //APEP: vimeoId lte is used to split the media in half during this manual batch process
-            var q = VideoMediaObject.find({hasTranscoded: false, ignore: false});
-
-            q.exec(function (err, data) {
-                if (err) return res.sendStatus(400);
-
-
-                var mediaForTranscoding = {
-                    mediaForTranscoding: data
-                };
-
-                res.status(200).send(mediaForTranscoding);
-
-            });
         }
     },
 
@@ -391,7 +416,6 @@ module.exports = {
 
             var fileImagePath = resumableCompletedFilePath;
             var fileImageName = resumableCompletedFileName;
-            var imageToUpload = sharp(fileImagePath);
 
             _getTags(data, function (err, tags) {
                 if (err) {
@@ -400,7 +424,7 @@ module.exports = {
 
                 var imageProcessor = ImageProcessing();
 
-                imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (err, imob) {
+                imageProcessor.upload(ImageMediaObject, fileImagePath, fileImageName, function (err, imob) {
                     console.log("Successfully saved new ImageMediaObject err:", err);
                     console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
 

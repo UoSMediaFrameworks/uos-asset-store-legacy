@@ -66,7 +66,7 @@ module.exports = function () {
                 });
         },
 
-        uploadImage: function (ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
+        upload: function (ImageMediaObject, imageFilePath, imageFileName, callback) {
             var self = this;
 
 
@@ -75,6 +75,8 @@ module.exports = function () {
 
             var resizedImageFilePath = imageFilePath + "-resized";
             var resizedImageFileName = "resized-" + imageFileName;
+
+            var imageToUpload = sharp(imageFilePath);
 
             async.parallel([
                 function (callback) {
