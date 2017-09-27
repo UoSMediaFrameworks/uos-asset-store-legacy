@@ -155,6 +155,8 @@ var AssetStore = function (ops) {
     // APEP TODO should be within a new router object, with prepend /admin/api and session check with a groupID check
     router.post('/upload/media', routes.mediaObjectCreate(ImageMediaObject, VideoMediaObject, AudioMediaObject));
 
+    router.post('/upload/convert', routes.convertAssetUrlsInMediaScenes(MediaScene));
+
     router.post('/scene/full', routes.getMediaSceneWithObjectsAppended(VideoMediaObject, ImageMediaObject, MediaScene));
 
     router.post('/scene/by/name', routes.getMediaSceneByName(MediaScene));
@@ -193,9 +195,12 @@ var AssetStore = function (ops) {
     app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject, AudioMediaObject));
     app.post('/media-transcoding-started', routes.updateMediaForTranscodingStarted(VideoMediaObject));
 
-    // APEP one off api for split transcoding from vimeo upload
-    // APEP TODO deprecated both below
+    // APEP one off api for split transcoding from vimeo upload TODO deprecated
     app.post('/vimeo/media-for-transcoding', routes.videoCreateFromVimeoDownloader(VideoMediaObject, MediaScene));
+
+    // APEP one off api for soundcloud work
+    app.post('/upload/media', routes.mediaObjectCreate(ImageMediaObject, VideoMediaObject, AudioMediaObject));
+    app.post('/upload/convert', routes.convertAssetUrlsInMediaScenes(MediaScene));
 };
 
 AssetStore.prototype.listen = function (cb) {

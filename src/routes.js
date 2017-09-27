@@ -93,6 +93,31 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
 
 module.exports = {
 
+    convertAssetUrlsInMediaScenes: function(MediaScene) {
+        return function(req, res) {
+
+            var oldUrl = req.body.oldUrl;
+            var newUrl = req.body.newUrl;
+
+            if(!oldUrl || !newUrl)
+                return res.sendStatus(400);
+
+            // APEP make sure new URL exists for?
+            // APEP make sure old URL exists?
+
+            var query = {'scene.url': oldUrl};
+            var update = {$set: {'scene.$.url': newUrl}};
+            var options = {new: false, multi: true};
+
+            //search for scenes that have the vimeo url
+            MediaScene.update(query, update, options, function (err, data) {
+                if (err) return res.sendStatus(400);
+
+                res.status(200).send(data);
+            });
+        }
+    },
+
     // APEP generic upload API - this is to allow administrative
     mediaObjectCreate: function(ImageMediaObject, VideoMediaObject, AudioMediaObject) {
         return function (req, res) {
