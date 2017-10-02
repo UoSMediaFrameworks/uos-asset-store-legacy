@@ -30,7 +30,7 @@ var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
 const ADMIN_UPLOAD_API = "/api/upload/media";
 const ADMIN_CONVERT_ASSET_API = "/api/upload/convert";
 
-var mediaSceneWithSoundcloudMedia = {
+var mediaSceneWithSoundcloudMedia01 = {
     "name": "Test01",
     "version": "0.1",
     "_groupID": 0,
@@ -65,7 +65,7 @@ var mediaSceneWithSoundcloudMedia = {
     ],
 };
 
-var mediaSceneWithSoundcloudMediaAndOthers = {
+var mediaSceneWithSoundcloudMediaAndOthers02 = {
     "name": "Test02",
     "version": "0.1",
     "_groupID": 0,
@@ -111,6 +111,56 @@ var mediaSceneWithSoundcloudMediaAndOthers = {
     ],
 };
 
+let scMultiUpdateUrl = "https://soundcloud.com/user-297728422/multiupdate";
+var mediaSceneWithMultiSameUrlTest03 = {
+    "name": "Test03",
+    "version": "0.1",
+    "_groupID": 0,
+    "maximumOnScreen": {
+        "image": 3,
+        "text": 1,
+        "video": 1,
+        "audio": 1
+    },
+    "displayDuration": 10,
+    "displayInterval": 3,
+    "transitionDuration": 1.4,
+    "themes": {},
+    "style": {
+        "backgroundColor": "black"
+    },
+    "scene": [
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": scMultiUpdateUrl,
+            "_id": "57988be8ec1e72d8833fe8f5"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": scMultiUpdateUrl,
+            "_id": "57988be8ec1e72d8833fe8f6"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": scMultiUpdateUrl,
+            "_id": "57988be8ec1e72d8833fe8f7"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover",
+            "_id": "57988be8ec1e72d8833fe8f8"
+        }
+    ],
+};
+
 describe('AssetStore', function() {
 
     var store;
@@ -140,11 +190,13 @@ describe('AssetStore', function() {
         store = new AssetStore(objectAssign(config, {port: port}));
         store.listen(function(err, result) {
             if (err) {
+                console.log("ERR AT START: ", err);
                 done(err);
             } else {
                 // make a session to use for tests
                 session = new Session();
                 session.save(function(error) {
+                    console.log("MADE SESSION");
                     done(error);
                 });
             }
@@ -230,10 +282,13 @@ describe('AssetStore', function() {
         before(function(done) {
             async.parallel([
                 function(cb) {
-                    MediaScene.create(mediaSceneWithSoundcloudMediaAndOthers, cb)
+                    MediaScene.create(mediaSceneWithSoundcloudMediaAndOthers02, cb)
                 },
                 function(cb) {
-                    MediaScene.create(mediaSceneWithSoundcloudMedia, cb)
+                    MediaScene.create(mediaSceneWithSoundcloudMedia01, cb)
+                },
+                function(cb) {
+                    MediaScene.create(mediaSceneWithMultiSameUrlTest03, cb)
                 }
             ], done);
         });
@@ -324,24 +379,22 @@ describe('AssetStore', function() {
                     .end(function(err, res){
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 1);
-                        done();
 
-                        /*MediaScene.find({}, function(err, results) {
+                        MediaScene.findOne({"name": "Test01"}, function(err, scene) {
                             assert(!err);
+                            assert(scene);
 
-                            assert(Array.isArray(results));
-
-                            var searchForOld = _.filter(results[0].scene, function(mo){
+                            var searchForOld = _.filter(scene.scene, function(mo){
                                 return mo.url.indexOf('https://soundcloud.com/user-297728422/iybxju5ubzqh') !== -1;
                             });
-                            var searchForNew = _.filter(results[0].scene, function(mo){
+                            var searchForNew = _.filter(scene.scene, function(mo){
                                 return mo.url.indexOf(self.audioUrl) !== -1;
                             });
 
                             assert.equal(searchForOld.length, 0);
-                            assert.equal(searchForOld.length, 1);
+                            assert.equal(searchForNew.length, 1);
                             done();
-                        });*/
+                        });
                     });
             });
 
@@ -353,21 +406,65 @@ describe('AssetStore', function() {
                     .end(function(err, res){
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 2);
-                        done();
 
-                        /*MediaScene.find({}, function(err, results) {
+                        MediaScene.find({"name": {$in: ["Test01", "Test02"]}}, function(err, results) {
                             assert(!err);
                             assert(Array.isArray(results));
                             assert(results.length === 2);
-                            var mediaObjectFromScene = results[0].scene[0];
-                            assert.equal(mediaObjectFromScene.url.indexOf('soundcloud.com'), -1);
-                            assert.equal(mediaObjectFromScene.url, self.audioUrl);
+
+                            _.forEach(results, function(scene){
+                                assert(scene.scene.length > 0);
+                                _.forEach(scene.scene, function(mo){
+                                    console.log(mo);
+                                    assert.equal(mo.url.indexOf('soundcloud.com'), -1);
+                                });
+                            });
+
                             done();
-                        });*/
+                        });
                     });
             });
 
-        });
+            it('same url multiple times in a single doc', function(done) {
+                this.request.field('token', session.id)
+                    .field('oldUrl', scMultiUpdateUrl)
+                    .field('newUrl', this.audioUrl)
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 3);
 
+                        MediaScene.findOne({"name": "Test03"}, function(err, scene){
+                            assert(!err);
+                            assert(scene);
+
+                            _.forEach(scene.scene, function(mo){
+                                assert(!_.isEqual(mo.url, scMultiUpdateUrl), "Failed to update multiple array items");
+                            });
+
+                            done();
+                        });
+                    });
+            });
+
+            it('character issue testing', function(done) {
+                this.request.field('token', session.id)
+                    .field('oldUrl', "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover")
+                    .field('newUrl', "http://localhost:8090/audio/raw/59ce54b725ed902a2c5c957c/張國榮-倩女幽魂 二胡版 by 永安 Leslie Cheung - A Chinese Ghost Story (Erhu Cover)-184686280.mp3")
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 1);
+
+                        MediaScene.findOne({"name": "Test03"}, function(err, scene){
+                            assert(!err);
+
+                            _.forEach(scene.scene, function(mo){
+                                assert(!_.isEqual(mo.url, "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover"));
+                            });
+
+                            done();
+                        });
+                    });
+            });
+        });
     });
 });

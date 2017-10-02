@@ -1,6 +1,5 @@
 'use strict';
 
-var objectAssign = require('object-assign');
 var express = require('express');
 var http = require('http');
 var multer = require('multer');

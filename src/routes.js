@@ -99,21 +99,51 @@ module.exports = {
             var oldUrl = req.body.oldUrl;
             var newUrl = req.body.newUrl;
 
-            if(!oldUrl || !newUrl)
-                return res.sendStatus(400);
+            if(!oldUrl || !newUrl) {
+                return res.status(400).send("Missing oldUrl or newUrl");
+            }
 
-            // APEP make sure new URL exists for?
-            // APEP make sure old URL exists?
+            oldUrl = req.body.oldUrl.toString();
+            newUrl = req.body.newUrl.toString();
 
-            var query = {'scene.url': oldUrl};
-            var update = {$set: {'scene.$.url': newUrl}};
-            var options = {new: false, multi: true};
+            MediaScene.find({'scene.url': oldUrl}, function(err, scenes) {
 
-            //search for scenes that have the vimeo url
-            MediaScene.update(query, update, options, function (err, data) {
-                if (err) return res.sendStatus(400);
+                if(err) return res.status(400).send("Database find error");
 
-                res.status(200).send(data);
+                if(scenes.length === 0) {
+                    return res.status(200).send({
+                        nModified: 0
+                    });
+                }
+
+                var count = 0;
+
+                async.every(scenes, function(scene, callback) {
+
+                    _.forEach(scene.scene, function(mo){
+                        if(mo.url === oldUrl) {
+                            mo.url = newUrl;
+                            count++;
+                        }
+                    });
+
+                    scene.save(function(err) {
+                        if(err) {
+                            console.log("scene.save - Database err: ", err.errors);
+                        }
+                        callback(err);
+                    });
+
+                }, function(err, results) {
+
+                    console.log("MediaScenes - convertAssetUrlsInMediaScenes - oldUrl: " + oldUrl + ", newUrl: " + newUrl + ", count: " + count + ", err: " + err);
+
+                    if(err) return res.status(400).send("Error during mongoose save");
+
+                    return res.status(200).send({
+                        nModified: count
+                    });
+                });
             });
         }
     },
