@@ -7,10 +7,12 @@ var MediaAsset = new mongoose.Schema({
 		required: false
 	}
 });
+MediaAsset.set('validateBeforeSave', false);
 
 var MediaSceneSchema = new mongoose.Schema({
 	name: String,
 	scene: [MediaAsset],
 });
+MediaSceneSchema.set('validateBeforeSave', false);
 
 module.exports = MediaSceneSchema;
