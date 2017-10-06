@@ -255,7 +255,7 @@ module.exports = {
 
                             if(index !== -1) {
                                 console.log("forEach Result - assigning vmob");
-                                var mediaObject = _.cloneDeep(mediaScene.scene[index]);
+                                var mediaObject = _.clone(mediaScene.scene[index]);
                                 mediaObject["vmob"] = vmob;
                                 mediaScene.scene[index] = mediaObject;
                                 console.log("forEach Result - assigning mediaScene.scene[index]:", mediaScene.scene[index]);
