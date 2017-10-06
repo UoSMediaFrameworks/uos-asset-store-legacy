@@ -245,28 +245,23 @@ module.exports = {
                     if(err) {
                         return res.statusCode(400);
                     }
-
-                    console.log("results: ", results);
-
                     _.forEach(Object.keys(results), function(resultKey) {
                         var vmob = results[resultKey];
-
-                        console.log("forEach Result - vmob: ", vmob);
 
                         if(vmob) {
                             var index = _.findIndex(mediaScene.scene, function(mo){
                                 return mo.url === vmob.video.url;
                             });
 
-                            console.log("forEach Result - index: ", index);
-
                             if(index !== -1) {
                                 console.log("forEach Result - assigning vmob");
                                 mediaScene.scene[index].vmob = vmob;
-                                console.log("forEach Result - assigning mediaScene.scene[index].vmob:", mediaScene.scene[index].vmob);
+                                console.log("forEach Result - assigning mediaScene.scene[index]:", mediaScene.scene[index]);
                             }
                         }
                     });
+
+                    console.log(mediaScene);
 
                     res.send(mediaScene).end();
                 });
