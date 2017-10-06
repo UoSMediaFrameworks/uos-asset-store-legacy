@@ -252,8 +252,12 @@ module.exports = {
                         return res.statusCode(400);
                     }
 
+                    console.log("results: ", results);
+
                     _.forEach(Object.keys(results), function(resultKey) {
                         var vmob = results[resultKey];
+
+                        console.log("forEach Result - vmob: ", vmob);
 
                         if(vmob) {
                             var index = _.indexOf(mediaScene.scene, function(mo){
