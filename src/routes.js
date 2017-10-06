@@ -255,7 +255,7 @@ module.exports = {
 
                             if(index !== -1) {
                                 console.log("forEach Result - assigning vmob");
-                                mediaScene.scene[index].vmob = vmob;
+                                mediaScene.scene[index]["vmob"] = vmob;
                                 console.log("forEach Result - assigning mediaScene.scene[index]:", mediaScene.scene[index]);
                             }
                         }
