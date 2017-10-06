@@ -220,30 +220,24 @@ module.exports = {
                 }
 
                 if(isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene)) {
+                    console.log("Not collecting vmobs from db");
                     return res.send(mediaScene).end();
                 }
 
                 function appendFullMediaObjectToSceneMediaObject(mO, callback) {
-                    if(mO.type !== "video") {
-                        callback(null, mO);
-                    } else {
-
-                        if(mO.type === "video") {
-                            VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
-                                if(err || !vmob) {
-                                    callback(null, null);
-                                } else {
-                                    callback(null, vmob);
-                                }
-                            });
+                    VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
+                        if(err || !vmob) {
+                            callback(null, null);
+                        } else {
+                            callback(null, vmob);
                         }
-
-                    }
+                    });
                 }
 
                 var taskObject = {};
 
-                _.forEach(mediaScene.scene, function(mO, index) {
+                var videoMedia = _.filter(mediaScene.scene, function(mo){return mo.type === "video"});
+                _.forEach(videoMedia, function(mO, index) {
                     taskObject[index] = appendFullMediaObjectToSceneMediaObject.bind(null, mO);
                 });
 
@@ -264,8 +258,12 @@ module.exports = {
                                 return mo.url === vmob.video.url;
                             });
 
+                            console.log("forEach Result - index: ", index);
+
                             if(index !== -1) {
+                                console.log("forEach Result - assigning vmob");
                                 mediaScene.scene[index].vmob = vmob;
+                                console.log("forEach Result - assigning mediaScene.scene[index].vmob:", mediaScene.scene[index].vmob);
                             }
                         }
                     });
