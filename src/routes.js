@@ -237,6 +237,7 @@ module.exports = {
                                 } else {
                                     console.log("Attached vmob");
                                     mO.vmob = vmob;
+                                    console.log(mO.vmob);
                                     callback(null, mO);
                                 }
                             });
@@ -261,7 +262,11 @@ module.exports = {
                         scene.push(results[resultKey]);
                     });
 
+                    console.log(scene);
+
                     mediaScene.scene = scene;
+
+                    console.log(mediaScene);
 
                     res.send(mediaScene).end();
                 });
