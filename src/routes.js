@@ -84,7 +84,7 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
         return media.type === "video" || media.type === "image";
     });
 
-    return ! (imageOrVideoMedia && imageOrVideoMedia.length > 0);
+    return !(imageOrVideoMedia && imageOrVideoMedia.length > 0);
 }
 
 module.exports = {
@@ -220,6 +220,7 @@ module.exports = {
                 }
 
                 if(isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene)) {
+                    console.log("DO NO ATTEMPT TO FETCH MEDIA");
                     return res.send(mediaScene).end();
                 }
 
@@ -230,9 +231,11 @@ module.exports = {
 
                         if(mO.type === "video") {
                             VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
+                                console.log("SEARCHED for vmob");
                                 if(err || !vmob) {
                                     callback(null, mO);
                                 } else {
+                                    console.log("Attached vmob");
                                     mO.vmob = vmob;
                                     callback(null, mO);
                                 }
