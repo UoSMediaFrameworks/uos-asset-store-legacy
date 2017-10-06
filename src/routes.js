@@ -254,7 +254,7 @@ module.exports = {
                         console.log("forEach Result - vmob: ", vmob);
 
                         if(vmob) {
-                            var index = _.indexOf(mediaScene.scene, function(mo){
+                            var index = _.findIndex(mediaScene.scene, function(mo){
                                 return mo.url === vmob.video.url;
                             });
 
