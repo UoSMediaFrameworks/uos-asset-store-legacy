@@ -220,7 +220,6 @@ module.exports = {
                 }
 
                 if(isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene)) {
-                    console.log("DO NO ATTEMPT TO FETCH MEDIA");
                     return res.send(mediaScene).end();
                 }
 
@@ -231,14 +230,10 @@ module.exports = {
 
                         if(mO.type === "video") {
                             VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
-                                console.log("SEARCHED for vmob");
                                 if(err || !vmob) {
-                                    callback(null, mO);
+                                    callback(null, null);
                                 } else {
-                                    console.log("Attached vmob");
-                                    mO.vmob = vmob;
-                                    console.log(mO.vmob);
-                                    callback(null, mO);
+                                    callback(null, vmob);
                                 }
                             });
                         }
@@ -257,16 +252,19 @@ module.exports = {
                         return res.statusCode(400);
                     }
 
-                    var scene = [];
-                    _.forEach(Object.keys(results), function(resultKey){
-                        scene.push(results[resultKey]);
+                    _.forEach(Object.keys(results), function(resultKey) {
+                        var vmob = results[resultKey];
+
+                        if(vmob) {
+                            var index = _.indexOf(mediaScene.scene, function(mo){
+                                return mo.url === vmob.video.url;
+                            });
+
+                            if(index !== -1) {
+                                mediaScene.scene[index].vmob = vmob;
+                            }
+                        }
                     });
-
-                    console.log(scene);
-
-                    mediaScene.scene = scene;
-
-                    console.log(mediaScene);
 
                     res.send(mediaScene).end();
                 });
