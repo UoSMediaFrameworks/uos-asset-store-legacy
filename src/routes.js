@@ -179,6 +179,11 @@ module.exports = {
                 }
 
                 processor.upload(MediaObject, filePath, fileName, function (error, mob) {
+                    if(err) {
+                        console.log("Failed to upload/save req.body: ", req.body);
+                        return res.status(400).send(err);
+                    }
+
                     console.log("Successfully attempted a " + mediaType + " upload mob: ", mob);
                     res.status(200).send({
                         tags: "",
