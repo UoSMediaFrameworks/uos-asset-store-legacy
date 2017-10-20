@@ -3,4 +3,3 @@
 .DS_Store
 /.idea
 /dev-run.sh
-node_modules
