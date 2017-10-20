@@ -1,6 +1,3 @@
-/**
- * Created by aaronphillips on 01/11/2016.
- */
 var mongoose = require('mongoose');
 var crate = require('mongoose-crate');
 var AzureBlobStorage = require('../azure-blob-storage').AzureBlobStorage;
@@ -21,7 +18,9 @@ var VideoSchema = new mongoose.Schema({
 });
 
 VideoSchema.plugin(crate, {
-    storage: new LocalBlobStorage(config),
+    // APEP the storage is configuration based, we fall back to Azure as it's our most common
+    // APEP this approach will change in the future
+    storage: config.cdnType === config.CDN_TYPES.LOCAL_CDN_TYPE ? new LocalBlobStorage(config) : AzureBlobStorage.instance(config),
     fields: {
         video: {}
     }

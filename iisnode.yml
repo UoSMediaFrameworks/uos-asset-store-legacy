@@ -1,0 +1,3 @@
+loggingEnabled: true
+# debuggingEnabled: true
+nodeProcessCommandLine: "D:\home\site\wwwroot\bin\amd64\node.exe --harmony"

@@ -17,15 +17,35 @@ class MediaBlobStore extends EventEmitter {
 	}
 
     save(media, cb) {
-		console.log("OVERRIDE");
+		console.log("Generic MediaBlobStore - save - Override");
 	}
 
 	remove(media, cb) {
-        console.log("OVERRIDE");
+        console.log("Generic MediaBlobStore - remove - Override");
 	}
 }
 
+var _instance = null;
+
 class AzureBlobStorage extends MediaBlobStore {
+
+    static get _instance() {
+        return _instance;
+    };
+
+    static set _instance(val) {
+        _instance = val;
+    }
+
+    // APEP allow us to use a single Azure Blob Storage connection for each runtime of this application
+    static instance (config) {
+        if (!AzureBlobStorage._instance) {
+            AzureBlobStorage._instance = new AzureBlobStorage(config);
+        }
+
+        return AzureBlobStorage._instance;
+    };
+
 	constructor(options) {
 		super(options);
 
@@ -85,8 +105,6 @@ class AzureBlobStorage extends MediaBlobStore {
         if (! this._blobSvc) {
             return this.on('connected', this.remove.bind(this, image, cb));
         } else {
-
-
             // APEP TODO Do media type dependent remove.  The below will not work for any of our media types anymore.
 
             // APEP We should also move to deleting the folders, as then all the media for this mediaobject id is removed

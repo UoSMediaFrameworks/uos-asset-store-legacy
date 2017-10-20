@@ -1,21 +1,21 @@
 {
   "name": "AssetStore",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "AssetStore ==========",
-  "main": "app.js",
+  "main": "--harmony app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Colum-SMA-Dev/AssetStore.git"
+    "url": "https://github.com/UoSMediaFrameworks/uos-asset-store-legacy.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Colum-SMA-Dev/AssetStore/issues"
+    "url": "https://github.com/UoSMediaFrameworks/uos-asset-store-legacy/issues"
   },
-  "homepage": "https://github.com/Colum-SMA-Dev/AssetStore",
+  "homepage": "https://github.com/UoSMediaFrameworks/uos-asset-store-legacy",
   "dependencies": {
     "async": "^0.9.2",
     "azure-storage": "^1.1.0",
