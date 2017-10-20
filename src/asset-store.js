@@ -205,7 +205,7 @@ var AssetStore = function (ops) {
 
 AssetStore.prototype.listen = function (cb) {
     // init the container
-    this._server.listen(this._ops.port, cb);
+    this._server.listen(process.env.PORT, cb);
 };
 
 AssetStore.prototype.close = function (cb) {
