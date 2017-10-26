@@ -12,7 +12,9 @@ var AudioSchema = new mongoose.Schema({
 
     uploadedTimestamp: { type: String, default: "" },
     transcodedTimestamp:  { type: String, default: "" },
-    transcodingStartedTimestamp: { type: String, default: "" }
+    transcodingStartedTimestamp: { type: String, default: "" },
+
+    audio: Object
 });
 
 AudioSchema.plugin(crate, {
