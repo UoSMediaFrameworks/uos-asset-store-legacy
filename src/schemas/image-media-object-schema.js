@@ -6,10 +6,7 @@ var config = require('../../config');
 
 var ImageSchema = new mongoose.Schema({
 	path: String,
-	sceneId: String,
-	image: Object,
-	thumbnail: Object,
-	resized: Object
+	sceneId: String
 });
 
 ImageSchema.plugin(crate, {

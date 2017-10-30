@@ -1,5 +1,5 @@
 {
-  "name": "uos-asset-store",
+  "name": "AssetStore",
   "version": "2.0.0",
   "description": "AssetStore ==========",
   "main": "--harmony app.js",

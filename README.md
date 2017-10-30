@@ -38,13 +38,4 @@ Azure Deployment Notes
 IISNode.yml is specified to allow us to use a 64bit prebuild - checked in dependency
 - This is a 64bit version of node
 
-Nodejs and Azure web app deployment
-===========
-
-web.config is required to for iis to be configured in such as way to handle the hand over of requests to nodejs.
-
-Samples of this file exist online
-
-Without a web.config iis will attempt to match all routes, looking for static files.  Generally produces errors and 
-iis errors can be found in the advanced web server error logs. 
 

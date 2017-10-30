@@ -14,8 +14,7 @@ var VideoSchema = new mongoose.Schema({
 
     uploadedTimestamp: { type: String, default: "" },
     transcodedTimestamp:  { type: String, default: "" },
-    transcodingStartedTimestamp: { type: String, default: "" },
-    video: Object // APEP we could look at describing this using the crate plugin.
+    transcodingStartedTimestamp: { type: String, default: "" }
 });
 
 VideoSchema.plugin(crate, {
