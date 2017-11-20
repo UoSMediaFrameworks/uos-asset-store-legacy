@@ -1,6 +1,5 @@
 'use strict';
 
-var objectAssign = require('object-assign');
 var express = require('express');
 var http = require('http');
 var multer = require('multer');
@@ -42,6 +41,7 @@ var AssetStore = function (ops) {
     // APEP set cross origin headers to allow our different environment and DNS addresses access to the API
     app.use(function (req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         next();
     });
@@ -54,11 +54,9 @@ var AssetStore = function (ops) {
         dest: this._ops.uploadDir
     }));
 
-    router.post('/videos', routes.videoCreate(VideoMediaObject));
     router.post('/isTranscoded', routes.retrieveVideoMediaTranscodedStatus(VideoMediaObject));
-    //TODO remove unusued videos
 
-    router.post('/images', routes.imageCreate(ImageMediaObject));
+    //TODO remove unusued videos
 
     // APEP Upload Chunk API
     router.post('/resumable/upload/media', function (req, res) {
@@ -153,6 +151,12 @@ var AssetStore = function (ops) {
         });
     });
 
+    // APEP Admin Upload API for things like conversion of external asset to local asset
+    // APEP TODO should be within a new router object, with prepend /admin/api and session check with a groupID check
+    router.post('/upload/media', routes.mediaObjectCreate(ImageMediaObject, VideoMediaObject, AudioMediaObject));
+
+    router.post('/upload/convert', routes.convertAssetUrlsInMediaScenes(MediaScene));
+
     router.post('/scene/full', routes.getMediaSceneWithObjectsAppended(VideoMediaObject, ImageMediaObject, MediaScene));
 
     router.post('/scene/by/name', routes.getMediaSceneByName(MediaScene));
@@ -191,15 +195,17 @@ var AssetStore = function (ops) {
     app.post('/media-transcoded', routes.updateMediaForTranscoding(VideoMediaObject, AudioMediaObject));
     app.post('/media-transcoding-started', routes.updateMediaForTranscodingStarted(VideoMediaObject));
 
-    // APEP one off api for split transcoding from vimeo upload
-    // APEP TODO deprecated both below
-    app.get('/one-off/media-for-transcoding', routes.retrieveMediaForTranscodingForVimeoBatchUploading(VideoMediaObject));
+    // APEP one off api for split transcoding from vimeo upload TODO deprecated
     app.post('/vimeo/media-for-transcoding', routes.videoCreateFromVimeoDownloader(VideoMediaObject, MediaScene));
+
+    // APEP one off api for soundcloud work
+    app.post('/upload/media', routes.mediaObjectCreate(ImageMediaObject, VideoMediaObject, AudioMediaObject));
+    app.post('/upload/convert', routes.convertAssetUrlsInMediaScenes(MediaScene));
 };
 
 AssetStore.prototype.listen = function (cb) {
     // init the container
-    this._server.listen(this._ops.port, cb);
+    this._server.listen(process.env.PORT, cb);
 };
 
 AssetStore.prototype.close = function (cb) {

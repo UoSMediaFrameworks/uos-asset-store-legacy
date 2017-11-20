@@ -9,24 +9,31 @@ const maxImageHeight = 768;
 module.exports = function () {
     return {
 
-        storeImage: function (ImageMediaObject, imageFilePath, imageFileName, callback) {
+        storeImage: function (ImageMediaObject, imageFilePath, imageFileName, thumbnailFilePath, thumbnailFilename, resizedFilePath, resizedFileName, callback) {
             var imob = new ImageMediaObject();
-            imob.attach('image', { id: imob._id, path: imageFilePath, name: imageFileName }, function(error, result) {
-                if (error) throw error;
+
+            async.parallel([
+                function (callback) {
+                    imob.attach('image', { id: imob._id, path: imageFilePath, name: imageFileName }, callback);
+                }, function (callback) {
+                    imob.attach('thumbnail', { id: imob._id, path: thumbnailFilePath, name: thumbnailFilename }, callback);
+                }, function (callback) {
+                    imob.attach('resized', { id: imob._id, path: resizedFilePath, name: resizedFileName }, callback);
+                }
+            ], function (err, results) {
+
+                if (err) return callback(err, null);
 
                 imob.save(function (error) {
-                    if (error) throw error;
+                    if (error) return callback(err, null);
 
                     callback(null, imob);
                 });
             });
+
         },
 
-        uploadThumbnailImage: function (ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
-            var self = this;
-            var thumbnailImageFilePath = imageFilePath + "-thumbnail";
-            var thumbnailImageFileName = "thumbnail-" + imageFileName;
-
+        createNewImage: function (imageFilePath, imageFileName, newMaxHeight, newImageFilePath, newImageFileName, imageToUpload, callback) {
             /*
              Angel Petrov 19/12/2016
              http://sharp.dimens.io/en/stable/api-output/
@@ -42,11 +49,10 @@ module.exports = function () {
              */
 
             imageToUpload
-                .resize(undefined, thumbnailHeight)
+                .resize(undefined, newMaxHeight)
                 .png()
-                .toFile(thumbnailImageFilePath, function (err) {
-                    if (err) throw err;
-                    self.storeImage(ImageMediaObject, thumbnailImageFilePath, thumbnailImageFileName, callback);
+                .toFile(newImageFilePath, function (err) {
+                    callback(err);
                 });
         },
 
@@ -60,25 +66,30 @@ module.exports = function () {
                 });
         },
 
-        uploadImage: function (ImageMediaObject, imageFilePath, imageFileName, imageToUpload, callback) {
+        upload: function (ImageMediaObject, imageFilePath, imageFileName, callback) {
             var self = this;
+
+
+            var thumbnailImageFilePath = imageFilePath + "-thumbnail";
+            var thumbnailImageFileName = "thumbnail-" + imageFileName;
+
+            var resizedImageFilePath = imageFilePath + "-resized";
+            var resizedImageFileName = "resized-" + imageFileName;
+
+            var imageToUpload = sharp(imageFilePath);
+
             async.parallel([
                 function (callback) {
-                    var resizedImageFilePath = imageFilePath + "-resized";
-                    var resizedImageFileName = "resized-" + imageFileName;
-                    imageToUpload
-                        .resize(undefined, maxImageHeight)
-                        .png()
-                        .toFile(resizedImageFilePath, function (err) {
-                            if (err) throw err;
-                            self.storeImage(ImageMediaObject, resizedImageFilePath, resizedImageFileName, callback);
-                        });
+                    self.createNewImage(imageFilePath, imageFileName, maxImageHeight, resizedImageFilePath, resizedImageFileName, imageToUpload, callback);
                 }, function (callback) {
-                    self.storeImage(ImageMediaObject, imageFilePath, imageFileName, callback);
+                    self.createNewImage(imageFilePath, imageFileName, thumbnailHeight, thumbnailImageFilePath, thumbnailImageFileName, imageToUpload, callback);
                 }
             ], function (err, results) {
-                if (err) throw err;
-                callback(results[1]);
+
+                // APEP TODO call back the error so we can inform the user we could not create new images
+                if(err) throw err;
+
+                self.storeImage(ImageMediaObject, imageFilePath, imageFileName, thumbnailImageFilePath, thumbnailImageFileName, resizedImageFilePath, resizedImageFileName, callback);
             });
         }
     }

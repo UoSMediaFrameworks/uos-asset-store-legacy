@@ -1,12 +1,7 @@
-/**
- * Created by aaa48574 on 24/07/2017.
- */
-/**
- * Created by aaronphillips on 01/11/2016.
- */
 var mongoose = require('mongoose');
 var crate = require('mongoose-crate');
-var AzureBlobStorage = require('../azure-blob-storage');
+var AzureBlobStorage = require('../azure-blob-storage').AzureBlobStorage;
+var LocalBlobStorage = require('../azure-blob-storage').LocalBlobStorage;
 var config = require('../../config');
 
 var AudioSchema = new mongoose.Schema({
@@ -21,11 +16,9 @@ var AudioSchema = new mongoose.Schema({
 });
 
 AudioSchema.plugin(crate, {
-    storage: new AzureBlobStorage({
-        account: config.account,
-        accessKey: config.accessKey,
-        container: config.container
-    }),
+    // APEP the storage is configuration based, we fall back to Azure as it's our most common
+    // APEP this approach will change in the future
+    storage: config.cdnType === config.CDN_TYPES.LOCAL_CDN_TYPE ? new LocalBlobStorage(config) : AzureBlobStorage.instance(config),
     fields: {
         audio: {}
     }

@@ -4,8 +4,8 @@ var moment = require('moment');
 
 module.exports = function() {
     return {
-        storeAudio: function(AudioMediaObject, audioFilePath, audioFileName, callback) {
-            console.log("Audio Processing - storeAudio");
+        upload: function(AudioMediaObject, audioFilePath, audioFileName, callback) {
+            console.log("Audio Processing - upload");
 
             var amod = new AudioMediaObject(); // APEP an ID is set during constructor
 
@@ -23,7 +23,6 @@ module.exports = function() {
                 });
 
             });
-
         }
     }
 };

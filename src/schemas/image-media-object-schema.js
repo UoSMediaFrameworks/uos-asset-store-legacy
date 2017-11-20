@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 var crate = require('mongoose-crate');
-var AzureBlobStorage = require('../azure-blob-storage');
+var LocalBlobStorage = require('../azure-blob-storage').LocalBlobStorage;
+var AzureBlobStorage = require('../azure-blob-storage').AzureBlobStorage;
 var config = require('../../config');
 
 var ImageSchema = new mongoose.Schema({
@@ -9,13 +10,13 @@ var ImageSchema = new mongoose.Schema({
 });
 
 ImageSchema.plugin(crate, {
-	storage: new AzureBlobStorage({
-		account: config.account,
-		accessKey: config.accessKey,
-		container: config.container
-	}),
+    // APEP the storage is configuration based, we fall back to Azure as it's our most common
+    // APEP this approach will change in the future
+    storage: config.cdnType === config.CDN_TYPES.LOCAL_CDN_TYPE ? new LocalBlobStorage(config) : AzureBlobStorage.instance(config),
 	fields: {
-		image: {}
+		image: {},
+		thumbnail: {},
+		resized: {}
 	}
 });
 

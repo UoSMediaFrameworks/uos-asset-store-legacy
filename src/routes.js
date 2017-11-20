@@ -5,7 +5,6 @@ var _ = require('lodash');
 var xpath = require('xpath');
 var DOMParser = require('xmldom').DOMParser;
 var async = require('async');
-var sharp = require('sharp');
 var ImageProcessing = require('./image-processing');
 var VideoProcessing = require('./video-processing');
 var AudioProcessing = require('./sound-processing');
@@ -81,18 +80,120 @@ function isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene) {
         return true;
     }
 
-    var imageOrVideoMedia = _.find(mediaScene.scene, function(media){
+    var imageOrVideoMedia = _.filter(mediaScene.scene, function(media){
         return media.type === "video" || media.type === "image";
     });
 
-    if(imageOrVideoMedia && imageOrVideoMedia.length > 0) {
-        return true;
-    }
-
-    return imageOrVideoMedia && imageOrVideoMedia.length > 0;
+    return !(imageOrVideoMedia && imageOrVideoMedia.length > 0);
 }
 
 module.exports = {
+
+    convertAssetUrlsInMediaScenes: function(MediaScene) {
+        return function(req, res) {
+
+            var oldUrl = req.body.oldUrl;
+            var newUrl = req.body.newUrl;
+
+            if(!oldUrl || !newUrl) {
+                return res.status(400).send("Missing oldUrl or newUrl");
+            }
+
+            oldUrl = req.body.oldUrl.toString();
+            newUrl = req.body.newUrl.toString();
+
+            MediaScene.find({'scene.url': oldUrl}, function(err, scenes) {
+
+                if(err) return res.status(400).send("Database find error");
+
+                if(scenes.length === 0) {
+                    return res.status(200).send({
+                        nModified: 0
+                    });
+                }
+
+                var count = 0;
+
+                async.every(scenes, function(scene, callback) {
+
+                    _.forEach(scene.scene, function(mo){
+                        if(mo.url === oldUrl) {
+                            mo.url = newUrl;
+                            count++;
+                        }
+                    });
+
+                    scene.save(function(err) {
+                        if(err) {
+                            console.log("scene.save - Database err: ", err.errors);
+                        }
+                        callback(err);
+                    });
+
+                }, function(err, results) {
+
+                    console.log("MediaScenes - convertAssetUrlsInMediaScenes - oldUrl: " + oldUrl + ", newUrl: " + newUrl + ", count: " + count + ", err: " + err);
+
+                    if(err) return res.status(400).send("Error during mongoose save");
+
+                    return res.status(200).send({
+                        nModified: count
+                    });
+                });
+            });
+        }
+    },
+
+    // APEP generic upload API - this is to allow administrative
+    mediaObjectCreate: function(ImageMediaObject, VideoMediaObject, AudioMediaObject) {
+        return function (req, res) {
+
+            var mediaType = req.body.mediaType;
+
+            // APEP missing file
+            if (!req.files[mediaType] || !req.body.filename) {
+                return res.sendStatus(400);
+            }
+
+            fs.readFile(req.files[mediaType].path, function (err, data) {
+                if (err) throw err;
+
+                var filePath = req.files[mediaType].path;
+                var fileName = req.body.filename;
+
+                var processor = null;
+                var MediaObject = null;
+
+                if(mediaType === "video") {
+                    processor = VideoProcessing();
+                    MediaObject = VideoMediaObject;
+                } else if (mediaType === "image") {
+                    processor = ImageProcessing();
+                    MediaObject = ImageMediaObject;
+                } else if (mediaType === "audio") {
+                    processor = AudioProcessing();
+                    MediaObject = AudioMediaObject;
+                } else {
+                    // APEP invalid media type and unable to find processor
+                    return res.sendStatus(400);
+                }
+
+                processor.upload(MediaObject, filePath, fileName, function (error, mob) {
+                    if(err) {
+                        console.log("Failed to upload/save req.body: ", req.body);
+                        return res.status(400).send(err);
+                    }
+
+                    console.log("Successfully attempted a " + mediaType + " upload mob: ", mob);
+                    res.status(200).send({
+                        tags: "",
+                        url: mob[mediaType].url,
+                        type: mediaType
+                    });
+                });
+            });
+        }
+    },
 
     getMediaSceneByName: function(MediaScene) {
         return function(req, res) {
@@ -124,31 +225,24 @@ module.exports = {
                 }
 
                 if(isSceneEmptyOrNoAdditionalMediaToFetch(mediaScene)) {
+                    console.log("Not collecting vmobs from db");
                     return res.send(mediaScene).end();
                 }
 
                 function appendFullMediaObjectToSceneMediaObject(mO, callback) {
-                    if(mO.type !== "video") {
-                        callback(null, mO);
-                    } else {
-
-                        if(mO.type === "video") {
-                            VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
-                                if(err || !vmob) {
-                                    callback(null, mO);
-                                } else {
-                                    mO.vmob = vmob;
-                                    callback(null, mO);
-                                }
-                            });
+                    VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
+                        if(err || !vmob) {
+                            callback(null, null);
+                        } else {
+                            callback(null, vmob);
                         }
-
-                    }
+                    });
                 }
 
                 var taskObject = {};
 
-                _.forEach(mediaScene.scene, function(mO, index) {
+                var videoMedia = _.filter(mediaScene.scene, function(mo){return mo.type === "video"});
+                _.forEach(videoMedia, function(mO, index) {
                     taskObject[index] = appendFullMediaObjectToSceneMediaObject.bind(null, mO);
                 });
 
@@ -156,13 +250,25 @@ module.exports = {
                     if(err) {
                         return res.statusCode(400);
                     }
+                    _.forEach(Object.keys(results), function(resultKey) {
+                        var vmob = results[resultKey];
 
-                    var scene = [];
-                    _.forEach(Object.keys(results), function(resultKey){
-                        scene.push(results[resultKey]);
+                        if(vmob) {
+                            var index = _.findIndex(mediaScene.scene, function(mo){
+                                return mo.url === vmob.video.url;
+                            });
+
+                            if(index !== -1) {
+                                console.log("forEach Result - assigning vmob");
+                                var mediaObject = mediaScene.scene[index];
+                                mediaObject["vmob"] = vmob;
+                                mediaScene.scene[index] = mediaObject;
+                                console.log("forEach Result - assigning mediaScene.scene[index]:", mediaScene.scene[index]);
+                            }
+                        }
                     });
 
-                    mediaScene.scene = scene;
+                    console.log(mediaScene);
 
                     res.send(mediaScene).end();
                 });
@@ -216,7 +322,7 @@ module.exports = {
 
             var audioProcessor = AudioProcessing();
 
-            audioProcessor.storeAudio(AudioMediaObject, fileAudioPath, fileAudioName, function(err, amod) {
+            audioProcessor.upload(AudioMediaObject, fileAudioPath, fileAudioName, function(err, amod) {
                 console.log("Successfully attempted a audio upload amod: ", amod);
                 callback({
                     tags: "",
@@ -234,7 +340,7 @@ module.exports = {
             var fileVideoName = resumableCompletedFileName;
 
             var videoProcessor = VideoProcessing();
-            videoProcessor.uploadVideo(VideoMediaObject, fileVideoPath, fileVideoName, function (error, vmod) {
+            videoProcessor.upload(VideoMediaObject, fileVideoPath, fileVideoName, function (error, vmod) {
                 console.log("Successfully attempted a video upload vmod: ", vmod);
                 callback({
                     tags: "",
@@ -242,31 +348,6 @@ module.exports = {
                 });
             });
         });
-    },
-
-    videoCreate: function (VideoMediaObject) {
-        return function (req, res) {
-            if (!req.files.video) {
-                return res.sendStatus(400);
-            }
-
-            fs.readFile(req.files.video.path, function (err, data) {
-                if (err) throw err;
-
-                var fileVideoPath = req.files.video.path;
-                var fileVideoName = req.body.filename;
-
-                var videoProcessor = VideoProcessing();
-                videoProcessor.uploadVideo(VideoMediaObject, fileVideoPath, fileVideoName, function (error, vmod) {
-                    console.log("Successfully attempted a video upload vmod: ", vmod);
-                    res.status(200).send({
-                        tags: "",
-                        url: vmod.video.url
-                    });
-                });
-
-            });
-        }
     },
 
     retrieveMediaForTranscoding: function (VideoMediaObject, AudioMediaObject) {
@@ -303,25 +384,6 @@ module.exports = {
         }
     },
 
-    retrieveMediaForTranscodingForVimeoBatchUploading: function (VideoMediaObject) {
-        return function (req, res) {
-            //APEP: We updated any VMOB that was not in a scene to be ignored true, this takes all not ignored and limits
-            //APEP: vimeoId lte is used to split the media in half during this manual batch process
-            var q = VideoMediaObject.find({hasTranscoded: false, ignore: false});
-
-            q.exec(function (err, data) {
-                if (err) return res.sendStatus(400);
-
-
-                var mediaForTranscoding = {
-                    mediaForTranscoding: data
-                };
-
-                res.status(200).send(mediaForTranscoding);
-
-            });
-        }
-    },
     retrieveVideoMediaTranscodedStatus: function (VideoMediaObject) {
         return function (req, res) {
             var indices = [];
@@ -415,7 +477,6 @@ module.exports = {
 
             var fileImagePath = resumableCompletedFilePath;
             var fileImageName = resumableCompletedFileName;
-            var imageToUpload = sharp(fileImagePath);
 
             _getTags(data, function (err, tags) {
                 if (err) {
@@ -423,57 +484,30 @@ module.exports = {
                 }
 
                 var imageProcessor = ImageProcessing();
-                // Indiscriminately upload a thumbnail for each image uploaded
-                imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (err, thumbnailImob) {
-                    imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (imob) {
-                        console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
-                        callback({
-                            tags: tags,
-                            url: imob.image.url
-                        });
+
+                imageProcessor.upload(ImageMediaObject, fileImagePath, fileImageName, function (err, imob) {
+                    console.log("Successfully saved new ImageMediaObject err:", err);
+                    console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
+
+                    // APEP TODO we should just callback;
+                    if(err) throw err;
+
+                    callback({
+                        tags: tags,
+                        url: imob.image.url
                     });
                 });
             });
         });
     },
 
-    imageCreate: function (ImageMediaObject) {
-        return function (req, res) {
-            if (!req.files.image) {
-                return res.sendStatus(400);
-            }
 
-            fs.readFile(req.files.image.path, function (err, data) {
-                if (err) throw err;
-
-                var fileImagePath = req.files.image.path;
-                var fileImageName = req.body.filename;
-                var imageToUpload = sharp(fileImagePath);
-
-                _getTags(data, function (err, tags) {
-                    if (err) {
-                        return res.status(400).send({error: err});
-                    }
-
-                    var imageProcessor = ImageProcessing();
-                    // Indiscriminately upload a thumbnail for each image uploaded
-                    imageProcessor.uploadThumbnailImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (err, thumbnailImob) {
-                        imageProcessor.uploadImage(ImageMediaObject, fileImagePath, fileImageName, imageToUpload, function (imob) {
-                            console.log("Successfully saved new ImageMediaObject to asset store and mongo storage imob:", imob);
-                            res.status(200).send({
-                                tags: tags,
-                                url: imob.image.url
-                            });
-                        });
-                    });
-                });
-
-            });
-        };
-    },
-
+    // APEP TODO this is defunct now and will need to be updated.
     removeUnusedImages: function(ImageMediaObject, MediaScene) {
         return function(req, res) {
+
+            return res.status(500).send("Not currently supported");
+
             // first get all of the image urls in the scenes
             MediaScene.find({'scene.type': 'image'}, 'scene.url', function(err, docs) {
                 // get all image urls in all docs, unique the list

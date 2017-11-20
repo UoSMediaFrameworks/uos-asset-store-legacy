@@ -2,281 +2,469 @@
 
 var assert = require('assert');
 var AssetStore = require('../src/asset-store');
+
+var config = require('../config');
+
+var objectAssign = require('object-assign');
+var async = require('async');
+var _ = require('lodash');
+
 var supertest = require('supertest');
 var port = 4001;
 var request = supertest('localhost:' + port);
-var azureStorage = require('azure-storage');
-var async = require('async');
 
-var imagesAPIUrl = '/api/images';
-var removeUnusedImagesAPIUrl = '/api/remove-unused-images';
-var dublinCoreFileName = '1836 Map.jpg';
-var dublinCoreFile = 'test/images/1836 Map.jpg';
-var viewChicagoFile = 'test/images/viewChicagoTagged.jpg';
-var xmpNoViewFile = 'test/images/noDublinCoreKeywords.jpg';
-var noXmpFile = 'test/images/noXmp.jpg';
-var config = require('../config');
-var objectAssign = require('object-assign');
 var mongoose = require('mongoose');
 var SessionSchema = require('../src/schemas/session-schema');
 var ImageMediaObjectSchema = require('../src/schemas/image-media-object-schema');
+var VideoMediaObjectSchema = require('../src/schemas/video-media-object-schema');
+var AudioMediaObjectSchema = require('../src/schemas/audio-media-object-schema');
 var MediaSceneSchema = require('../src/schemas/media-scene-schema');
 
-var db = mongoose.createConnection(config.mongoConnection); 
+var db = mongoose.createConnection(config.mongoConnection);
 var Session = db.model('Session', SessionSchema);
 var ImageMediaObject = db.model('ImageMediaObject', ImageMediaObjectSchema);
+var VideoMediaObject = db.model('VideoMediaObject', VideoMediaObjectSchema);
+var AudioMediaObject = db.model('AudioMediaObject', AudioMediaObjectSchema);
 var MediaScene = db.model('MediaScene', MediaSceneSchema, 'mediaScenes');
 
-function clearBlobStorage (cbsCallback) {
-    // clear up the storage blob
-    var blobSvc = azureStorage.createBlobService(config.azureStorageAccount, config.azureStorageAccessKey);
-    blobSvc.createContainerIfNotExists(config.azureStorageContainer, {publicAccessLevel: 'blob'}, function(error, result, response) {
-        if (error) {
-            cbsCallback(error);
-        } 
-        // get all blobs
-        blobSvc.listBlobsSegmented(config.azureStorageContainer, null, function(err, result, response) {
-            // delete them 4 at a time
-            async.mapLimit(result.entries, 4, function(blob, mlCallback) {
-                blobSvc.deleteBlob(config.azureStorageContainer, blob.name, function(err, response) {
-                    mlCallback(err, response);
-                });
-            }, cbsCallback);
-        });
-    });
-}
+const ADMIN_UPLOAD_API = "/api/upload/media";
+const ADMIN_CONVERT_ASSET_API = "/api/upload/convert";
 
-function clearMongo (callback) {
-    ImageMediaObject.remove({}, function() {
-        MediaScene.remove({}, callback);
-    });
-}
+var mediaSceneWithSoundcloudMedia01 = {
+    "name": "Test01",
+    "version": "0.1",
+    "_groupID": 0,
+    "maximumOnScreen": {
+        "image": 3,
+        "text": 1,
+        "video": 1,
+        "audio": 1
+    },
+    "displayDuration": 10,
+    "displayInterval": 3,
+    "transitionDuration": 1.4,
+    "themes": {},
+    "style": {
+        "backgroundColor": "black"
+    },
+    "scene": [
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": "https://soundcloud.com/user-297728422/iybxju5ubzqh",
+            "_id": "57988be8ec1e72d8833fe8f5"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": "https://soundcloud.com/user-297728422/new-for-test-old",
+            "_id": "57988be8ec1e72d8833fe8f5"
+        }
+    ],
+};
 
-function clearData (callback) {
-    async.parallel([
-        clearMongo, clearBlobStorage
-    ], callback);
-}
+var mediaSceneWithSoundcloudMediaAndOthers02 = {
+    "name": "Test02",
+    "version": "0.1",
+    "_groupID": 0,
+    "maximumOnScreen": {
+        "image": 3,
+        "text": 1,
+        "video": 1,
+        "audio": 1
+    },
+    "displayDuration": 10,
+    "displayInterval": 3,
+    "transitionDuration": 1.4,
+    "themes": {},
+    "style": {
+        "backgroundColor": "black"
+    },
+    "scene": [
+        {
+            "tags": "level",
+            "type": "text",
+            "text": "Level",
+            "style": {
+                "z-index": "1"
+            },
+            "_id": "58ec074c1221d18411031173"
+        },
+        {
+            "tags": "right",
+            "type": "text",
+            "text": "Roll right",
+            "style": {
+                "z-index": "1"
+            },
+            "_id": "58ec07561221d18411031174"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": "https://soundcloud.com/user-297728422/new-for-test-old",
+            "_id": "57988be8ec1e72d8833fe8f5"
+        }
+    ],
+};
 
-function uploadImage (imgPath, sessionId) {
-    return function (callback) {
-        request.post(imagesAPIUrl)
-            .field('token', sessionId)
-            .attach('image', imgPath)
-            .end(function(err, result) {
-                callback(err, result.body.url);
-            });
-    };
-}
+let scMultiUpdateUrl = "https://soundcloud.com/user-297728422/multiupdate";
+var mediaSceneWithMultiSameUrlTest03 = {
+    "name": "Test03",
+    "version": "0.1",
+    "_groupID": 0,
+    "maximumOnScreen": {
+        "image": 3,
+        "text": 1,
+        "video": 1,
+        "audio": 1
+    },
+    "displayDuration": 10,
+    "displayInterval": 3,
+    "transitionDuration": 1.4,
+    "themes": {},
+    "style": {
+        "backgroundColor": "black"
+    },
+    "scene": [
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": scMultiUpdateUrl,
+            "_id": "57988be8ec1e72d8833fe8f5"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": scMultiUpdateUrl,
+            "_id": "57988be8ec1e72d8833fe8f6"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": scMultiUpdateUrl,
+            "_id": "57988be8ec1e72d8833fe8f7"
+        },
+        {
+            "tags": "",
+            "type": "audio",
+            "volume": 100,
+            "url": "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover",
+            "_id": "57988be8ec1e72d8833fe8f8"
+        }
+    ],
+};
 
-function uploadImage (imgPath, imgName, sessionId) {
-    return function (callback) {
-        request.post(imagesAPIUrl)
-            .field('token', sessionId)
-            .field('filename', imgName)
-            .attach('image', imgPath)
-            .end(function(err, result) {
-                callback(err, result.body.url);
-            });
-    };
-}
+describe('AssetStore', function() {
 
-function createScene(scene) {
-    return function (callback) {
-        MediaScene.create({
-            scene: scene
-        }, callback);
-    };
-}
-
-function getImageMediaObjectThumbnailUrl(mediaObjectUrl) {
-    if(!mediaObjectUrl || mediaObjectUrl.length == 0) {
-        return mediaObjectUrl;
-    }
-
-    var trailingSlash = mediaObjectUrl.lastIndexOf('/');
-    return mediaObjectUrl.substring(0, trailingSlash + 1) + "thumbnail-" + mediaObjectUrl.substring(trailingSlash + 1, mediaObjectUrl.length);
-}
-
-describe('AssetStore', function () { 
     var store;
     var session;
+
+    function clearMongo(callback){
+        async.parallel([
+            function(cb) {
+                ImageMediaObject.remove({}, cb)
+            },
+            function(cb) {
+                VideoMediaObject.remove({}, cb)
+            },
+            function(cb) {
+                AudioMediaObject.remove({}, cb)
+            },
+            function(cb) {
+                MediaScene.remove({}, cb)
+            },
+            function(cb) {
+                Session.remove({}, cb)
+            },
+        ], callback);
+    }
 
     before(function (done) {
         store = new AssetStore(objectAssign(config, {port: port}));
         store.listen(function(err, result) {
             if (err) {
-                done(err);  
+                console.log("ERR AT START: ", err);
+                done(err);
             } else {
                 // make a session to use for tests
                 session = new Session();
                 session.save(function(error) {
-                    done(error); 
-                });    
-            }
-        });            
-    }); 
-
-    after(function (done) {
-        async.parallel(
-            [
-                clearData,
-                store.close.bind(store)
-            ], 
-            done
-        );
-    });
-
-    //before each test for posting to the api end point to remove unused images
-        //We create two upload two of the same images
-        //Create two scenes
-    describe.only('POST to ' + removeUnusedImagesAPIUrl, function () {
-        beforeEach(function (done) {
-            this.timeout(20000); //Increases timeout giving image upload more time
-
-            var self = this;
-
-            async.parallel([
-                uploadImage(dublinCoreFile, dublinCoreFileName, session.id),
-                uploadImage(dublinCoreFile, dublinCoreFileName, session.id),
-            ], function(err, results) {
-                if (err) done(err);
-
-                self.unusedImageUrl = results[0];
-                self.unusedImageUrlThumbnail = getImageMediaObjectThumbnailUrl(results[0]);
-                self.usedImageUrl = results[1];
-                self.usedImageUrlThumbnail = getImageMediaObjectThumbnailUrl(results[1]);
-                
-                async.parallel([
-                    createScene([
-                        {type: 'image', url: self.usedImageUrl},
-                        {type: 'image', url: 'http://somenonbloburl.com/img.jpg'}
-                    ]),
-                    createScene([
-                        {type: 'image', url: 'http://somenonbloburl.com/img.jpg'}
-                    ])
-                ], function(err, results) {
-                    request.post(removeUnusedImagesAPIUrl)
-                        .field('token', session.id)
-                        .expect(200)
-                        .end(done);    
-                }); 
-            });
-        });
-
-        afterEach(function (done) {
-            clearData(done);
-        });
-
-        it('should remove all images and thumbnails from blob store that aren\'t in a scene', function (done) {
-            this.timeout(20000);
-            var self = this;
-            ImageMediaObject.find({'image.url': self.unusedImageUrl}, null, function(err, docs) {
-                assert.equal(docs.length, 0);
-                ImageMediaObject.find({'image.url': self.unusedImageUrlThumbnail}, null, function(err, docs) {
-                    assert.equal(docs.length, 0);
-                    done();
+                    console.log("MADE SESSION");
+                    done(error);
                 });
-            });
-        });
-
-        it('should not remove images and their thumbnail counterpart that are in a scene', function (done) {
-            this.timeout(20000);
-            var self = this;
-           ImageMediaObject.find({'image.url': self.usedImageUrl}, null, function(err, docs) {
-               assert.equal(docs.length, 1, "Ensure the used image url exists");
-
-               ImageMediaObject.find({'image.url': self.usedImageUrlThumbnail}, null, function(err, docs) {
-                   assert.equal(docs.length, 1, "Ensure the used thumbnail image url exists");
-                   done();
-               });
-           });
+            }
         });
     });
 
-    describe('POST to ' + imagesAPIUrl, function () {
+    describe('POST to ' + ADMIN_UPLOAD_API, function() {
         beforeEach(function () {
-            this.request = request.post(imagesAPIUrl);
+            this.request = request.post(ADMIN_UPLOAD_API);
         });
 
+        after(function(done) {
+            clearMongo(done);
+        });
 
         describe('without a token', function () {
             it('should respond with a 401', function (done) {
+                var dublinCoreFile = 'test/images/1836 Map.jpg';
                 this.request.attach('image', dublinCoreFile)
                     .expect(401, done);
             });
-        });        
+        });
+
+        describe('media without mediaType specified', function() {
+            it('should respond with a 400', function (done) {
+                var noXmpFile = 'test/images/noXmp.jpg';
+                this.request.field('token', session.id)
+                    .attach('image', noXmpFile)
+                    .expect(400, done);
+            });
+        });
+
+        describe('media without filename specified', function() {
+            it('should respond with a 400', function (done) {
+                var noXmpFile = 'test/images/noXmp.jpg';
+                this.request.field('token', session.id)
+                    .field('mediaType', 'image')
+                    .attach('image', noXmpFile)
+                    .expect(400, done);
+            });
+        });
 
         describe('image without xmp', function () {
             it('should respond with 200 and a url', function (done) {
+                var noXmpFile = 'test/images/noXmp.jpg';
                 this.request.field('token', session.id)
+                    .field('mediaType', 'image')
+                    .field('filename', 'noXmp.jpg')
                     .attach('image', noXmpFile)
                     .end(function(err, result) {
                         assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
-                        assert(! body.tags, 'tags in response');
+                        assert(!body.tags, 'tags in response');
                         assert(body.url, 'no url in response');
                         done();
                     });
             });
         });
 
-        describe('image with xmp that contains Dublin Core keywords', function () {
-            it('should respond with 200, and json object of tags and url', function (done) {
-                this.request.field('token', session.id)
-                    .attach('image', dublinCoreFile)
-                    .end(function(err, result) {
-                        assert.equal(result.status, 200);
-                        var body = result.body;
-                        assert(result.type, 'application/json');
-                        assert(body.tags, 'no tags in response');
-                        assert(body.url, 'no url in response');
-                        done();
-                    });
-            });
-        });
-
-        describe('image with xmp that contains View Chicago tags', function () {
-            it('should respond with 200, and json object of tags and url', function (done) {
-                this.request.field('token', session.id)
-                    .attach('image', viewChicagoFile)
-                    .end(function(err, result) {
-                        assert.equal(result.status, 200);
-                        var body = result.body;
-                        assert(result.type, 'application/json');
-                        assert(body.tags, 'no tags in response');
-                        assert(body.url, 'no url in response');
-                        done();
-                    });
-            });
-        });
-
-        describe('image with xmp but missing Dublin Core keywords and View Chicago tags', function () {
+        describe('audio', function() {
             it('should respond with 200 and a url', function (done) {
+                var audioFile = 'test/audio/soundcloudAudioTest.mp3';
                 this.request.field('token', session.id)
-                    .attach('image', xmpNoViewFile)
+                    .field('mediaType', 'audio')
+                    .field('filename', 'soundcloudAudioTest.mp3')
+                    .attach('audio', audioFile)
                     .end(function(err, result) {
                         assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
+                        assert(!body.tags, 'tags in response');
                         assert(body.url, 'no url in response');
-                        assert(! body.tags, 'tags in response');
                         done();
                     });
             });
         });
 
-        describe('no image', function () {
+    });
+
+    describe.only('POST to' + ADMIN_CONVERT_ASSET_API, function() {
+
+        before(function(done) {
+            async.parallel([
+                function(cb) {
+                    MediaScene.create(mediaSceneWithSoundcloudMediaAndOthers02, cb)
+                },
+                function(cb) {
+                    MediaScene.create(mediaSceneWithSoundcloudMedia01, cb)
+                },
+                function(cb) {
+                    MediaScene.create(mediaSceneWithMultiSameUrlTest03, cb)
+                }
+            ], done);
+        });
+
+        after(function(done) {
+            clearMongo(done);
+        });
+
+        beforeEach(function(){
+            this.request = request.post(ADMIN_CONVERT_ASSET_API);
+        });
+
+        describe('without a token', function() {
+            it('should respond with a 401', function (done) {
+                this.request
+                    .send('fake')
+                    .end(function(err, res){
+                        assert.equal(res.status, 401);
+                        done();
+                    });
+            });
+        });
+
+        describe('without old url', function() {
             it('should respond with a 400', function (done) {
-                this.request.send('token=' + session.id)
-                    .end(function(err, res) {
+                this.request.field('token', session.id)
+                    .field('fake', "fake")
+                    .field('newUrl', "http://newurl.com")
+                    .end(function(err, res){
                         assert.equal(res.status, 400);
                         done();
                     });
             });
         });
-    });
 
-    
-}); 
+        describe('without old url', function() {
+            it('should respond with a 400', function (done) {
+                this.request.field('token', session.id)
+                    .field('fake', "fake")
+                    .field('oldUrl', "http://newurl.com")
+                    .end(function(err, res){
+                        assert.equal(res.status, 400);
+                        done();
+                    });
+            });
+        });
+
+        describe('with all fields', function() {
+
+            // APEP TODO should we do a test for invalid URLs that given?
+
+            before(function(done){
+                var self = this;
+                var audioFile = 'test/audio/soundcloudAudioTest.mp3';
+                request.post(ADMIN_UPLOAD_API).field('token', session.id)
+                    .field('mediaType', 'audio')
+                    .field('filename', 'soundcloudAudioTest.mp3')
+                    .attach('audio', audioFile)
+                    .end(function(err, result) {
+                        assert.equal(result.status, 200);
+                        var body = result.body;
+                        assert(result.type, 'application/json');
+                        assert(!body.tags, 'tags in response');
+                        assert(body.url, 'no url in response');
+
+                        self.audioUrl = body.url;
+                        done();
+                    });
+            });
+
+            it('should respond with a 200 and no URLS changed if oldURL is incorrect', function(done){
+                var self = this;
+                this.request.field('token', session.id)
+                    .field('oldUrl', "https://soundcloud.com/incorrect")
+                    .field('newUrl', self.audioUrl)
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 0);
+                        done();
+                    });
+            });
+
+            it('should respond with a 200 and number of URLS changed given URLs that are correct [1]', function (done) {
+                var self = this;
+                this.request.field('token', session.id)
+                    .field('oldUrl', "https://soundcloud.com/user-297728422/iybxju5ubzqh")
+                    .field('newUrl', self.audioUrl)
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 1);
+
+                        MediaScene.findOne({"name": "Test01"}, function(err, scene) {
+                            assert(!err);
+                            assert(scene);
+
+                            var searchForOld = _.filter(scene.scene, function(mo){
+                                return mo.url.indexOf('https://soundcloud.com/user-297728422/iybxju5ubzqh') !== -1;
+                            });
+                            var searchForNew = _.filter(scene.scene, function(mo){
+                                return mo.url.indexOf(self.audioUrl) !== -1;
+                            });
+
+                            assert.equal(searchForOld.length, 0);
+                            assert.equal(searchForNew.length, 1);
+                            done();
+                        });
+                    });
+            });
+
+            it('should respond with a 200 and number of URLS changed given URLs that are correct [2]', function (done) {
+                var self = this;
+                this.request.field('token', session.id)
+                    .field('oldUrl', "https://soundcloud.com/user-297728422/new-for-test-old")
+                    .field('newUrl', self.audioUrl)
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 2);
+
+                        MediaScene.find({"name": {$in: ["Test01", "Test02"]}}, function(err, results) {
+                            assert(!err);
+                            assert(Array.isArray(results));
+                            assert(results.length === 2);
+
+                            _.forEach(results, function(scene){
+                                assert(scene.scene.length > 0);
+                                _.forEach(scene.scene, function(mo){
+                                    console.log(mo);
+                                    assert.equal(mo.url.indexOf('soundcloud.com'), -1);
+                                });
+                            });
+
+                            done();
+                        });
+                    });
+            });
+
+            it('same url multiple times in a single doc', function(done) {
+                this.request.field('token', session.id)
+                    .field('oldUrl', scMultiUpdateUrl)
+                    .field('newUrl', this.audioUrl)
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 3);
+
+                        MediaScene.findOne({"name": "Test03"}, function(err, scene){
+                            assert(!err);
+                            assert(scene);
+
+                            _.forEach(scene.scene, function(mo){
+                                assert(!_.isEqual(mo.url, scMultiUpdateUrl), "Failed to update multiple array items");
+                            });
+
+                            done();
+                        });
+                    });
+            });
+
+            it('character issue testing', function(done) {
+                this.request.field('token', session.id)
+                    .field('oldUrl', "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover")
+                    .field('newUrl', "http://localhost:8090/audio/raw/59ce54b725ed902a2c5c957c/張國榮-倩女幽魂 二胡版 by 永安 Leslie Cheung - A Chinese Ghost Story (Erhu Cover)-184686280.mp3")
+                    .end(function(err, res){
+                        assert.equal(res.status, 200);
+                        assert.equal(res.body.nModified, 1);
+
+                        MediaScene.findOne({"name": "Test03"}, function(err, scene){
+                            assert(!err);
+
+                            _.forEach(scene.scene, function(mo){
+                                assert(!_.isEqual(mo.url, "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover"));
+                            });
+
+                            done();
+                        });
+                    });
+            });
+        });
+    });
+});
