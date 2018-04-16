@@ -3,6 +3,8 @@
 var assert = require('assert');
 var AssetStore = require('../src/asset-store');
 
+var fs = require('fs');
+
 var config = require('../config');
 
 var objectAssign = require('object-assign');
@@ -161,26 +163,26 @@ var mediaSceneWithMultiSameUrlTest03 = {
     ],
 };
 
-describe('AssetStore', function() {
+describe('AssetStore', function () {
 
     var store;
     var session;
 
-    function clearMongo(callback){
+    function clearMongo(callback) {
         async.parallel([
-            function(cb) {
+            function (cb) {
                 ImageMediaObject.remove({}, cb)
             },
-            function(cb) {
+            function (cb) {
                 VideoMediaObject.remove({}, cb)
             },
-            function(cb) {
+            function (cb) {
                 AudioMediaObject.remove({}, cb)
             },
-            function(cb) {
+            function (cb) {
                 MediaScene.remove({}, cb)
             },
-            function(cb) {
+            function (cb) {
                 Session.remove({}, cb)
             },
         ], callback);
@@ -188,14 +190,14 @@ describe('AssetStore', function() {
 
     before(function (done) {
         store = new AssetStore(objectAssign(config, {port: port}));
-        store.listen(function(err, result) {
+        store.listen(function (err, result) {
             if (err) {
                 console.log("ERR AT START: ", err);
                 done(err);
             } else {
                 // make a session to use for tests
                 session = new Session();
-                session.save(function(error) {
+                session.save(function (error) {
                     console.log("MADE SESSION");
                     done(error);
                 });
@@ -203,12 +205,12 @@ describe('AssetStore', function() {
         });
     });
 
-    describe('POST to ' + ADMIN_UPLOAD_API, function() {
+    describe('POST to ' + ADMIN_UPLOAD_API, function () {
         beforeEach(function () {
             this.request = request.post(ADMIN_UPLOAD_API);
         });
 
-        after(function(done) {
+        after(function (done) {
             clearMongo(done);
         });
 
@@ -220,7 +222,7 @@ describe('AssetStore', function() {
             });
         });
 
-        describe('media without mediaType specified', function() {
+        describe('media without mediaType specified', function () {
             it('should respond with a 400', function (done) {
                 var noXmpFile = 'test/images/noXmp.jpg';
                 this.request.field('token', session.id)
@@ -229,7 +231,7 @@ describe('AssetStore', function() {
             });
         });
 
-        describe('media without filename specified', function() {
+        describe('media without filename specified', function () {
             it('should respond with a 400', function (done) {
                 var noXmpFile = 'test/images/noXmp.jpg';
                 this.request.field('token', session.id)
@@ -246,7 +248,7 @@ describe('AssetStore', function() {
                     .field('mediaType', 'image')
                     .field('filename', 'noXmp.jpg')
                     .attach('image', noXmpFile)
-                    .end(function(err, result) {
+                    .end(function (err, result) {
                         assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
@@ -257,14 +259,14 @@ describe('AssetStore', function() {
             });
         });
 
-        describe('audio', function() {
+        describe('audio', function () {
             it('should respond with 200 and a url', function (done) {
                 var audioFile = 'test/audio/soundcloudAudioTest.mp3';
                 this.request.field('token', session.id)
                     .field('mediaType', 'audio')
                     .field('filename', 'soundcloudAudioTest.mp3')
                     .attach('audio', audioFile)
-                    .end(function(err, result) {
+                    .end(function (err, result) {
                         assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
@@ -275,79 +277,117 @@ describe('AssetStore', function() {
             });
         });
 
+        describe.only('filename tests', function () {
+
+            // APEP TODO check file system for unencoded name 'C:/mediaframework/test2/cdn'
+
+            it('should not have any encoding in the url, in the image collection and the json returned', function (done) {
+                var name = 'test 2 50%.jpg';
+                var filename = 'test/filename-tests/test 2 50%.jpg';
+
+                this.request.field('token', session.id)
+                    .field('mediaType', 'image')
+                    .field('filename', name)
+                    .attach('image', filename)
+                    .end(function (err, result) {
+                        assert.equal(result.status, 200);
+                        var body = result.body;
+                        assert(result.type, 'application/json');
+                        assert(!body.tags, 'tags in response');
+                        assert(body.url, 'no url in response');
+
+                        // APEP ensure the url has encoded the filename
+                        assert(body.url.indexOf('test%202%2050%25.jpg') !== -1, 'url has not encoded filename');
+
+                        // APEP ensure the database value has the filename encoded
+                        ImageMediaObject.findOne({'image.url': body.url}, function (err, obj) {
+                            assert(!err, 'no error');
+                            assert(obj, 'found record in db');
+
+                            var expectedLocalFilePathForNewlySavedImage = process.env.LOCAL_CDN_ROOT_FOLDER;
+                            expectedLocalFilePathForNewlySavedImage += '/' + obj._id + '/' + name;
+                            // APEP make sure the file is saved not encoded. urls and filepaths do not share same rules
+                            assert(fs.existsSync(expectedLocalFilePathForNewlySavedImage), 'file is missing @ ' + expectedLocalFilePathForNewlySavedImage);
+
+                            done();
+                        });
+                    });
+            })
+        });
+
     });
 
-    describe.only('POST to' + ADMIN_CONVERT_ASSET_API, function() {
+    describe('POST to' + ADMIN_CONVERT_ASSET_API, function () {
 
-        before(function(done) {
+        before(function (done) {
             async.parallel([
-                function(cb) {
+                function (cb) {
                     MediaScene.create(mediaSceneWithSoundcloudMediaAndOthers02, cb)
                 },
-                function(cb) {
+                function (cb) {
                     MediaScene.create(mediaSceneWithSoundcloudMedia01, cb)
                 },
-                function(cb) {
+                function (cb) {
                     MediaScene.create(mediaSceneWithMultiSameUrlTest03, cb)
                 }
             ], done);
         });
 
-        after(function(done) {
+        after(function (done) {
             clearMongo(done);
         });
 
-        beforeEach(function(){
+        beforeEach(function () {
             this.request = request.post(ADMIN_CONVERT_ASSET_API);
         });
 
-        describe('without a token', function() {
+        describe('without a token', function () {
             it('should respond with a 401', function (done) {
                 this.request
                     .send('fake')
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 401);
                         done();
                     });
             });
         });
 
-        describe('without old url', function() {
+        describe('without old url', function () {
             it('should respond with a 400', function (done) {
                 this.request.field('token', session.id)
                     .field('fake', "fake")
                     .field('newUrl', "http://newurl.com")
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 400);
                         done();
                     });
             });
         });
 
-        describe('without old url', function() {
+        describe('without old url', function () {
             it('should respond with a 400', function (done) {
                 this.request.field('token', session.id)
                     .field('fake', "fake")
                     .field('oldUrl', "http://newurl.com")
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 400);
                         done();
                     });
             });
         });
 
-        describe('with all fields', function() {
+        describe('with all fields', function () {
 
             // APEP TODO should we do a test for invalid URLs that given?
 
-            before(function(done){
+            before(function (done) {
                 var self = this;
                 var audioFile = 'test/audio/soundcloudAudioTest.mp3';
                 request.post(ADMIN_UPLOAD_API).field('token', session.id)
                     .field('mediaType', 'audio')
                     .field('filename', 'soundcloudAudioTest.mp3')
                     .attach('audio', audioFile)
-                    .end(function(err, result) {
+                    .end(function (err, result) {
                         assert.equal(result.status, 200);
                         var body = result.body;
                         assert(result.type, 'application/json');
@@ -359,12 +399,12 @@ describe('AssetStore', function() {
                     });
             });
 
-            it('should respond with a 200 and no URLS changed if oldURL is incorrect', function(done){
+            it('should respond with a 200 and no URLS changed if oldURL is incorrect', function (done) {
                 var self = this;
                 this.request.field('token', session.id)
                     .field('oldUrl', "https://soundcloud.com/incorrect")
                     .field('newUrl', self.audioUrl)
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 0);
                         done();
@@ -376,18 +416,18 @@ describe('AssetStore', function() {
                 this.request.field('token', session.id)
                     .field('oldUrl', "https://soundcloud.com/user-297728422/iybxju5ubzqh")
                     .field('newUrl', self.audioUrl)
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 1);
 
-                        MediaScene.findOne({"name": "Test01"}, function(err, scene) {
+                        MediaScene.findOne({"name": "Test01"}, function (err, scene) {
                             assert(!err);
                             assert(scene);
 
-                            var searchForOld = _.filter(scene.scene, function(mo){
+                            var searchForOld = _.filter(scene.scene, function (mo) {
                                 return mo.url.indexOf('https://soundcloud.com/user-297728422/iybxju5ubzqh') !== -1;
                             });
-                            var searchForNew = _.filter(scene.scene, function(mo){
+                            var searchForNew = _.filter(scene.scene, function (mo) {
                                 return mo.url.indexOf(self.audioUrl) !== -1;
                             });
 
@@ -403,18 +443,18 @@ describe('AssetStore', function() {
                 this.request.field('token', session.id)
                     .field('oldUrl', "https://soundcloud.com/user-297728422/new-for-test-old")
                     .field('newUrl', self.audioUrl)
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 2);
 
-                        MediaScene.find({"name": {$in: ["Test01", "Test02"]}}, function(err, results) {
+                        MediaScene.find({"name": {$in: ["Test01", "Test02"]}}, function (err, results) {
                             assert(!err);
                             assert(Array.isArray(results));
                             assert(results.length === 2);
 
-                            _.forEach(results, function(scene){
+                            _.forEach(results, function (scene) {
                                 assert(scene.scene.length > 0);
-                                _.forEach(scene.scene, function(mo){
+                                _.forEach(scene.scene, function (mo) {
                                     console.log(mo);
                                     assert.equal(mo.url.indexOf('soundcloud.com'), -1);
                                 });
@@ -425,19 +465,19 @@ describe('AssetStore', function() {
                     });
             });
 
-            it('same url multiple times in a single doc', function(done) {
+            it('same url multiple times in a single doc', function (done) {
                 this.request.field('token', session.id)
                     .field('oldUrl', scMultiUpdateUrl)
                     .field('newUrl', this.audioUrl)
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 3);
 
-                        MediaScene.findOne({"name": "Test03"}, function(err, scene){
+                        MediaScene.findOne({"name": "Test03"}, function (err, scene) {
                             assert(!err);
                             assert(scene);
 
-                            _.forEach(scene.scene, function(mo){
+                            _.forEach(scene.scene, function (mo) {
                                 assert(!_.isEqual(mo.url, scMultiUpdateUrl), "Failed to update multiple array items");
                             });
 
@@ -446,18 +486,18 @@ describe('AssetStore', function() {
                     });
             });
 
-            it('character issue testing', function(done) {
+            it('character issue testing', function (done) {
                 this.request.field('token', session.id)
                     .field('oldUrl', "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover")
                     .field('newUrl', "http://localhost:8090/audio/raw/59ce54b725ed902a2c5c957c/張國榮-倩女幽魂 二胡版 by 永安 Leslie Cheung - A Chinese Ghost Story (Erhu Cover)-184686280.mp3")
-                    .end(function(err, res){
+                    .end(function (err, res) {
                         assert.equal(res.status, 200);
                         assert.equal(res.body.nModified, 1);
 
-                        MediaScene.findOne({"name": "Test03"}, function(err, scene){
+                        MediaScene.findOne({"name": "Test03"}, function (err, scene) {
                             assert(!err);
 
-                            _.forEach(scene.scene, function(mo){
+                            _.forEach(scene.scene, function (mo) {
                                 assert(!_.isEqual(mo.url, "https://soundcloud.com/wangan0921-3/leslie-cheung-a-chinese-ghost-story-erhu-cover"));
                             });
 

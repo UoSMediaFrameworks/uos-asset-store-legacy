@@ -78,6 +78,7 @@ class AzureBlobStorage extends MediaBlobStore {
         return util.format('https://%s.blob.core.windows.net/%s/', this._options.account, this._options.container) + mediaForStoragePath;
     }
 
+    // APEP TODO should be in super class
     _getStoragePathForMedia(media) {
         if(media.type.startsWith("video")) {
             return "video/raw/" + media.id + "/" + media.name;
@@ -85,6 +86,17 @@ class AzureBlobStorage extends MediaBlobStore {
             return "audio/raw/" + media.id + "/" + media.name;
         } else {
             return media.id + "/" + media.name;
+        }
+    }
+
+    // APEP TODO should be in super class
+    _getUrlForMedia(media) {
+        if(media.type.startsWith("video")) {
+            return "video/raw/" + media.id + "/" + encodeURIComponent(media.name);
+        } else if (media.type.startsWith("audio")) {
+            return "audio/raw/" + media.id + "/" + encodeURIComponent(media.name);
+        } else {
+            return media.id + "/" + encodeURIComponent(media.name);
         }
     }
 
@@ -96,7 +108,8 @@ class AzureBlobStorage extends MediaBlobStore {
             var mediaForStoragePath = this._getStoragePathForMedia(media);
 
             this._blobSvc.createBlockBlobFromLocalFile(this._options.container, mediaForStoragePath, media.path, function(error, result, response) {
-                cb(error, error ? undefined : this._urlPartial(mediaForStoragePath));
+                var mediaFilenameForUrl = this._getUrlForMedia(media);
+                cb(error, error ? undefined : this._urlPartial(mediaFilenameForUrl));
             }.bind(this));
         }
     }
@@ -133,6 +146,7 @@ class LocalBlobStorage extends MediaBlobStore {
         return util.format('%s:%s/', this._options.localCDNHost, this._options.localCDNPort) + mediaForStoragePath;
     }
 
+    // APEP TODO should be in super class
     _getStoragePathForMedia(media) {
         if(media.type.startsWith("video")) {
             return "video/raw/" + media.id + "/" + media.name;
@@ -143,12 +157,24 @@ class LocalBlobStorage extends MediaBlobStore {
         }
     }
 
+    // APEP TODO should be in super class
+    _getUrlForMedia(media) {
+        if(media.type.startsWith("video")) {
+            return "video/raw/" + media.id + "/" + encodeURIComponent(media.name);
+        } else if (media.type.startsWith("audio")) {
+            return "audio/raw/" + media.id + "/" + encodeURIComponent(media.name);
+        } else {
+            return media.id + "/" + encodeURIComponent(media.name);
+        }
+    }
+
     save(media, cb) {
         var relativeMediaForStoragePath = this._getStoragePathForMedia(media);
 		var mediaForStoragePath = this._options.localCDNRootDirectory + "/" + relativeMediaForStoragePath;
 		console.log("LocalBlobStorage - save - mediaForStoragePath: ", mediaForStoragePath);
         fs.copy(media.path, mediaForStoragePath, function(err) {
-            cb(err, err ? undefined : this._localUrl(relativeMediaForStoragePath));
+            var mediaUrl = this._getUrlForMedia(media);
+            cb(err, err ? undefined : this._localUrl(mediaUrl));
         }.bind(this));
     }
 
