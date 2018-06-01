@@ -229,46 +229,21 @@ module.exports = {
                     return res.send(mediaScene).end();
                 }
 
-                function appendFullMediaObjectToSceneMediaObject(mO, callback) {
-                    VideoMediaObject.findOne({"video.url": mO.url}, function(err, vmob){
-                        if(err || !vmob) {
-                            callback(null, null);
-                        } else {
-                            callback(null, vmob);
-                        }
-                    });
-                }
-
-                var taskObject = {};
 
                 var videoMedia = _.filter(mediaScene.scene, function(mo){return mo.type === "video"});
-                _.forEach(videoMedia, function(mO, index) {
-                    taskObject[index] = appendFullMediaObjectToSceneMediaObject.bind(null, mO);
-                });
+                var videoUrls = _.map(videoMedia, function(mo){return mo.url});
 
-                async.parallel(taskObject, function(err, results){
+                VideoMediaObject.find({"video.url": { $in: videoUrls}}, function(err, results){
                     if(err) {
                         return res.statusCode(400);
                     }
-                    _.forEach(Object.keys(results), function(resultKey) {
-                        var vmob = results[resultKey];
-
-                        if(vmob) {
-                            var index = _.findIndex(mediaScene.scene, function(mo){
-                                return mo.url === vmob.video.url;
-                            });
-
-                            if(index !== -1) {
-                                console.log("forEach Result - assigning vmob");
-                                var mediaObject = mediaScene.scene[index];
-                                mediaObject["vmob"] = vmob;
-                                mediaScene.scene[index] = mediaObject;
-                                console.log("forEach Result - assigning mediaScene.scene[index]:", mediaScene.scene[index]);
-                            }
-                        }
+                    _.forEach(results, function(vmob) {
+                        _.forEach(mediaScene.scene, function(mo, index) {
+                           if(mo.url === vmob.video.url) {
+                               mediaScene.scene[index]["vmob"] = vmob;
+                           }
+                        });
                     });
-
-                    console.log(mediaScene);
 
                     res.send(mediaScene).end();
                 });
