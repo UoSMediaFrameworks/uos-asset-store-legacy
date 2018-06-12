@@ -13,6 +13,10 @@ Getting Started
 
 npm install
 
+Required for install
+
+npm install --python=python2.7
+
 
 Create a run script: cp ./run-example.sh ./run.sh
 * Ensure configuration is correct
