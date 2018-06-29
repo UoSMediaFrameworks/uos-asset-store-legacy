@@ -17,6 +17,13 @@ Required for install
 
 npm install --python=python2.7
 
+Required for install
+
+Windows
+
+Run in administrator powershell
+
+npm install -g --production windows-build-tools
 
 Create a run script: cp ./run-example.sh ./run.sh
 * Ensure configuration is correct
