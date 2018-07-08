@@ -102,45 +102,19 @@ module.exports = {
             oldUrl = req.body.oldUrl.toString();
             newUrl = req.body.newUrl.toString();
 
-            MediaScene.find({'scene.url': oldUrl}, function(err, scenes) {
+            MediaScene.update(
+                {'scene.url': oldUrl},
+                {$set: {'scene.$.url': newUrl}},
+                {multi: true},
+                function(err, update) {
+                    if(err) return res.status(400).send("Database find error");
 
-                if(err) return res.status(400).send("Database find error");
+                    console.log(`MediaScenes - convertAssetUrlsInMediaScenes - oldUrl ${oldUrl} newUrl ${newUrl}`);
+                    console.log(update);
 
-                if(scenes.length === 0) {
-                    return res.status(200).send({
-                        nModified: 0
-                    });
+                    return res.status(200).send(update);
                 }
-
-                var count = 0;
-
-                async.every(scenes, function(scene, callback) {
-
-                    _.forEach(scene.scene, function(mo){
-                        if(mo.url === oldUrl) {
-                            mo.url = newUrl;
-                            count++;
-                        }
-                    });
-
-                    scene.save(function(err) {
-                        if(err) {
-                            console.log("scene.save - Database err: ", err.errors);
-                        }
-                        callback(err);
-                    });
-
-                }, function(err, results) {
-
-                    console.log("MediaScenes - convertAssetUrlsInMediaScenes - oldUrl: " + oldUrl + ", newUrl: " + newUrl + ", count: " + count + ", err: " + err);
-
-                    if(err) return res.status(400).send("Error during mongoose save");
-
-                    return res.status(200).send({
-                        nModified: count
-                    });
-                });
-            });
+            );
         }
     },
 
